@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Communities – FeedSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/base.css"/>
+  <link rel="stylesheet" href="../css/communities.css"/>
+</head>
+<body>
+<header class="navbar">
+  <div class="nav-logo"><a href="main-feed.html"><img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/><span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span></a></div>
+  <div class="nav-search"><div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search communities..."/></div></div>
+  <div class="nav-actions">
+    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')"><i class="fas fa-bell"></i><span class="badge">3</span></button>
+    <button class="nav-icon-btn" onclick="toggleDropdown('settingsDropdown')"><i class="fas fa-cog"></i></button>
+    <div class="profile-chip" onclick="window.location.href='profile.html'"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="Profile"/></div>
+    <div class="dropdown" id="notifDropdown"><div class="dropdown-header">Notifications</div><div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">New community activity</div><div class="notif-time">1 hour ago</div></div></div></div>
+    <div class="dropdown" id="settingsDropdown">
+      <div class="dropdown-header">Settings</div>
+      <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
+      <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="window.location.href='index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+    </div>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="sidebar-user"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/></div>
+    <nav class="sidebar-nav">
+      <a href="main-feed.html" data-tooltip="Home"><i class="fas fa-bars"></i></a>
+      <a href="announcements.html" data-tooltip="Announcements"><i class="fas fa-bullhorn"></i></a>
+      <a href="liked.html" data-tooltip="Liked Pages"><i class="fas fa-heart"></i></a>
+      <a href="communities.html" class="active" data-tooltip="Communities"><i class="fas fa-th"></i></a>
+      <a href="archive.html" data-tooltip="Archive"><i class="fas fa-archive"></i></a>
+      <a href="help.html" data-tooltip="Help"><i class="fas fa-question-circle"></i></a>
+    </nav>
+    <a href="about.html" class="sidebar-about" style="text-decoration:none;"><i class="fas fa-info-circle"></i></a>
+  </aside>
+
+  <main class="main-content">
+    <div class="communities-wrapper">
+      <div class="comm-header-row">
+        <h2 class="comm-title">Communities</h2>
+        <button class="create-comm-btn" onclick="openCreateCommunity()"><i class="fas fa-plus"></i> Create Community</button>
+      </div>
+
+      <div class="communities-list" id="commList">
+
+        <div class="community-row" onclick="window.location.href='community-page.html'" style="cursor:pointer;">
+          <div class="comm-thumb" style="background:linear-gradient(135deg,#355872,#7AAACE)">📸</div>
+          <div class="comm-row-info">
+            <div class="comm-row-name">Photography Lovers</div>
+            <div class="comm-row-desc">Share your best shots and tips!</div>
+            <div class="comm-row-members"><i class="fas fa-users"></i> 3,240 members</div>
+          </div>
+          <button class="comm-like-btn liked" onclick="toggleCommLike(event, this)"><i class="fas fa-heart"></i></button>
+        </div>
+
+        <div class="community-row" onclick="window.location.href='community-page.html'" style="cursor:pointer;">
+          <div class="comm-thumb" style="background:linear-gradient(135deg,#7AAACE,#9CD5FF)">🍜</div>
+          <div class="comm-row-info">
+            <div class="comm-row-name">Foodie Hub PH</div>
+            <div class="comm-row-desc">All things food and recipes!</div>
+            <div class="comm-row-members"><i class="fas fa-users"></i> 8,910 members</div>
+          </div>
+          <button class="comm-like-btn" onclick="toggleCommLike(event, this)"><i class="far fa-heart"></i></button>
+        </div>
+
+        <div class="community-row" onclick="window.location.href='community-page.html'" style="cursor:pointer;">
+          <div class="comm-thumb" style="background:linear-gradient(135deg,#9CD5FF,#355872)">💻</div>
+          <div class="comm-row-info">
+            <div class="comm-row-name">Dev &amp; Code PH</div>
+            <div class="comm-row-desc">Tech talk, projects &amp; help.</div>
+            <div class="comm-row-members"><i class="fas fa-users"></i> 5,500 members</div>
+          </div>
+          <button class="comm-like-btn" onclick="toggleCommLike(event, this)"><i class="far fa-heart"></i></button>
+        </div>
+
+        <div class="community-row" onclick="window.location.href='community-page.html'" style="cursor:pointer;">
+          <div class="comm-thumb" style="background:linear-gradient(135deg,#355872,#9CD5FF)">🎮</div>
+          <div class="comm-row-info">
+            <div class="comm-row-name">Gamer Zone</div>
+            <div class="comm-row-desc">Games, memes &amp; squad goals.</div>
+            <div class="comm-row-members"><i class="fas fa-users"></i> 14,200 members</div>
+          </div>
+          <button class="comm-like-btn liked" onclick="toggleCommLike(event, this)"><i class="fas fa-heart"></i></button>
+        </div>
+
+        <div class="community-row" onclick="window.location.href='community-page.html'" style="cursor:pointer;">
+          <div class="comm-thumb" style="background:linear-gradient(135deg,#7AAACE,#355872)">📚</div>
+          <div class="comm-row-info">
+            <div class="comm-row-name">Book Nook</div>
+            <div class="comm-row-desc">Reviews, recommendations &amp; reads.</div>
+            <div class="comm-row-members"><i class="fas fa-users"></i> 2,100 members</div>
+          </div>
+          <button class="comm-like-btn" onclick="toggleCommLike(event, this)"><i class="far fa-heart"></i></button>
+        </div>
+
+        <div class="community-row" onclick="window.location.href='community-page.html'" style="cursor:pointer;">
+          <div class="comm-thumb" style="background:linear-gradient(135deg,#9CD5FF,#7AAACE)">🌿</div>
+          <div class="comm-row-info">
+            <div class="comm-row-name">Plant Parents</div>
+            <div class="comm-row-desc">Grow together, one leaf at a time.</div>
+            <div class="comm-row-members"><i class="fas fa-users"></i> 1,870 members</div>
+          </div>
+          <button class="comm-like-btn" onclick="toggleCommLike(event, this)"><i class="far fa-heart"></i></button>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Create Community Modal -->
+<div class="modal-overlay" id="createCommModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create Community</h3>
+      <button class="modal-close" onclick="closeModal('createCommModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <input type="text" id="commName" class="form-input" placeholder="Community Name"/>
+      </div>
+      <div class="form-group">
+        <input type="text" id="commDesc" class="form-input" placeholder="Description"/>
+      </div>
+      <div class="form-group">
+        <select id="commCollege" class="form-select">
+          <option value="">College/Administration</option>
+          <option>College of Engineering</option>
+          <option>College of Arts &amp; Sciences</option>
+          <option>College of Business</option>
+          <option>College of Education</option>
+          <option>College of Nursing</option>
+          <option>Administration</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitCreateCommunity()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/base.js"></script>
+<script src="../js/communities.js"></script>
+<script>
+function openCreateCommunity() { document.getElementById('createCommModal').classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('createCommModal');
+  if (modal && e.target === modal) modal.classList.remove('show');
+});
+
+function toggleCommLike(event, btn) {
+  event.stopPropagation();
+  const liked = btn.classList.contains('liked');
+  if (liked) { btn.classList.remove('liked'); btn.innerHTML='<i class="far fa-heart"></i>'; showToast('Removed from liked.'); }
+  else { btn.classList.add('liked'); btn.innerHTML='<i class="fas fa-heart"></i>'; showToast('Added to liked! ❤️'); }
+}
+
+function submitCreateCommunity() {
+  const name = document.getElementById('commName').value.trim();
+  const desc = document.getElementById('commDesc').value.trim();
+  const college = document.getElementById('commCollege').value;
+  if (!name) { showToast('Please enter a community name.'); return; }
+  const list = document.getElementById('commList');
+  const emojis = ['🌟','🔥','💡','🎯','🚀','🎨'];
+  const emoji = emojis[Math.floor(Math.random()*emojis.length)];
+  const colors = ['#355872,#7AAACE','#7AAACE,#9CD5FF','#9CD5FF,#355872'];
+  const col = colors[Math.floor(Math.random()*colors.length)];
+  const row = document.createElement('div');
+  row.className = 'community-row';
+  row.style.cursor = 'pointer';
+  row.onclick = () => window.location.href='community-page.html';
+  row.innerHTML = `<div class="comm-thumb" style="background:linear-gradient(135deg,${col})">${emoji}</div>
+    <div class="comm-row-info"><div class="comm-row-name">${name}</div><div class="comm-row-desc">${desc||'New community'}</div><div class="comm-row-members"><i class="fas fa-users"></i> 1 member</div></div>
+    <button class="comm-like-btn liked" onclick="toggleCommLike(event,this)"><i class="fas fa-heart"></i></button>`;
+  list.insertBefore(row, list.firstChild);
+  closeModal('createCommModal');
+  document.getElementById('commName').value=''; document.getElementById('commDesc').value=''; document.getElementById('commCollege').value='';
+  showToast(`Community "${name}" created! 🎉`);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+// auth.js - Complete authentication handler for FeedSpace login/register/OTP
+// Integrates backend PHP APIs + base.js utilities
+// Usage: Load base.js first, then this script
+
+// Shared utilities
+let isLoading = false;
+
+// School ID formatting (XXXX-XXXX)
+document.addEventListener('DOMContentLoaded', function() {
+  const loginIdentifierInput = document.getElementById('loginIdentifier');
+  if (loginIdentifierInput) {
+    loginIdentifierInput.addEventListener('input', function(e) {
+      const raw = e.target.value;
+      // Only auto-format school IDs when the value contains only digits and optional dashes.
+      if (/^[0-9-]*$/.test(raw)) {
+        let value = raw.replace(/[^0-9]/g, '');
+        value = value.slice(0, 8);
+        if (value.length > 4) {
+          value = value.slice(0, 4) + '-' + value.slice(4);
+        }
+        e.target.value = value;
+      }
+    });
+  }
+});
+
+// Password visibility toggle
+function togglePassword(id) {
+  const input = document.getElementById(id);
+  const icon = input.nextElementSibling?.querySelector('i');
+  if (input && icon) {
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
+}
+
+// Show loading on button
+function setLoading(btn, show = true) {
+  if (show) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.originalText || 'Log In';
+  }
+}
+
+// API base path
+const API_BASE = (() => {
+  const path = window.location.pathname.replace(/\\\/+$/, '');
+  if (path.includes('/main/html/')) {
+    return '../api/users/auth/';
+  }
+  return 'main/api/users/auth/';
+})();
+
+// Generic POST helper
+async function postAuth(endpoint, data) {
+  const formData = new FormData();
+  for (let key in data) {
+    formData.append(key, data[key]);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin'
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    const rawBody = await res.text();
+
+    if (contentType.includes('application/json')) {
+      try {
+        const json = JSON.parse(rawBody);
+        if (!res.ok) {
+          return { error: json.error || json.message || `Request failed ${res.status}` };
+        }
+        return json;
+      } catch (parseError) {
+        return rawBody.trim();
+      }
+    }
+
+    return rawBody.trim();
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+// 1. LOGIN
+async function handleLogin(event) {
+  event.preventDefault();
+  if (isLoading) return;
+
+  const loginIdentifier = document.getElementById('loginIdentifier')?.value.trim();
+  const password = document.getElementById('password')?.value;
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const schoolIdPattern = /^\d{4}-?\d{4}$/;
+
+  if (!loginIdentifier || !(emailPattern.test(loginIdentifier) || schoolIdPattern.test(loginIdentifier))) {
+    showToast('Enter a valid email address or School ID (XXXX-XXXX or XXXXXXXX)');
+    return;
+  }
+  if (password.length < 6) {
+    showToast('Password must be 6+ characters');
+    return;
+  }
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.dataset.originalText = btn.innerHTML;
+  setLoading(btn, true);
+  isLoading = true;
+
+  let normalizedIdentifier = loginIdentifier;
+  if (schoolIdPattern.test(loginIdentifier) && !loginIdentifier.includes('-')) {
+    normalizedIdentifier = loginIdentifier.slice(0, 4) + '-' + loginIdentifier.slice(4);
+  }
+
+  const result = await postAuth('login.php', { identifier: normalizedIdentifier, password });
+
+  setLoading(btn, false);
+  isLoading = false;
+
+  const errorMessage = typeof result === 'string'
+    ? result
+    : result?.error || result?.message;
+
+if (result && result.success) {
+    showToast('OTP sent to your email! 📧');
+    setTimeout(() => {
+        window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
+    }, 1000);
+    return;
+}
+
+  showToast(errorMessage || 'Login failed');
+}
+
+// 2. REGISTER (for signup.html)
+async function handleRegister(event) {
+  event.preventDefault();
+  if (isLoading) return;
+
+  const first_name = document.getElementById('fname')?.value.trim();
+  const last_name = document.getElementById('lname')?.value.trim();
+  const student_id = document.getElementById('student_id')?.value.trim();
+  const email = document.getElementById('email')?.value.trim();
+  const password = document.getElementById('password')?.value;
+  const confirm = document.getElementById('confirm')?.value;
+  const role = document.getElementById('role')?.value;
+  const college = document.getElementById('college')?.value;
+
+  if (!first_name || !last_name || !student_id || !email || !password || !confirm || !role || !college) {
+    showToast('Please fill in all required fields.');
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Enter a valid email address');
+    return;
+  }
+  if (password.length < 8) {
+    showToast('Password must be at least 8 characters');
+    return;
+  }
+  if (password !== confirm) {
+    showToast('Passwords do not match');
+    return;
+  }
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.dataset.originalText = btn.innerHTML;
+  setLoading(btn, true);
+  isLoading = true;
+
+  const result = await postAuth('register.php', {
+    first_name,
+    last_name,
+    student_id,
+    email,
+    password,
+    role,
+    college
+  });
+
+  setLoading(btn, false);
+  isLoading = false;
+
+if (result && result.success) {
+    showToast('OTP sent to your email! 📧');
+    setTimeout(() => {
+        window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
+    }, 1000);
+    return;
+}
+
+// 3. FORGOT PASSWORD
+async function handleForgotPassword(event) {
+  event.preventDefault();
+  if (isLoading) return;
+
+  const email = document.getElementById('email')?.value.trim();
+  if (!email) {
+    showToast('Enter your email address');
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Enter a valid email address');
+    return;
+  }
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.dataset.originalText = btn.innerHTML;
+  setLoading(btn, true);
+  isLoading = true;
+
+  const result = await postAuth('forgot-password.php', { email });
+
+  setLoading(btn, false);
+  isLoading = false;
+
+ if (result && result.success) {
+    showToast('OTP sent to your email! 📧');
+    setTimeout(() => {
+        // Pass user_id to verify page
+        window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
+    }, 1000);
+    return;
+}
+
+  const errorMessage = result?.error || (typeof result === 'string' ? result : 'Unable to send OTP');
+  showToast(errorMessage);
+}
+
+// 4. SEND OTP
+async function sendOTP(data) {
+  const result = await postAuth('send-otp.php', data);
+  return result;
+}
+
+// 4. VERIFY OTP
+async function verifyOTP(data) {
+  console.log('verifyOTP called with data:', data);
+  const result = await postAuth('verify-otp.php', data);
+  console.log('verifyOTP result:', result);
+  if (result && result.success) {
+    showToast('Login successful!');
+    setTimeout(() => {
+      window.location.href = './main-feed.html';
+    }, 1500);
+  } else {
+    const errorMessage = result?.error || (typeof result === 'string' ? result : 'OTP verification failed');
+    showToast(errorMessage);
+  }
+  return result;
+}
+
+// 5. LOGOUT (for dashboard)
+async function handleLogout() {
+  const result = await postAuth('logout.php', {});
+  showToast('Logged out successfully');
+  window.location.href = 'index.html';
+}
+
+// Export/attach to window for onclick="handleLogin(event)"
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.handleForgotPassword = handleForgotPassword;
+window.handleLogout = handleLogout;
+window.togglePassword = togglePassword;
+window.sendOTP = sendOTP;
+window.verifyOTP = verifyOTP;
+
+console.log('FeedSpace Auth.js loaded - Login/Register/OTP/Logout ready!');
+}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Archive – FeedSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/base.css"/>
+  <style>
+    .archive-wrapper { max-width: 660px; }
+    .archive-card { background: var(--color-white); border: 2px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 14px; box-shadow: var(--shadow-sm); opacity: 0.75; }
+    .archive-label { display: inline-block; background: var(--color-cream); border: 2px solid var(--color-border); color: var(--color-subtext); font-size: 0.72rem; font-weight: 800; padding: 2px 10px; border-radius: var(--radius-full); margin: 12px 14px 0; }
+    .restore-btn { background: none; border: 2px solid var(--color-mid); color: var(--color-dark); border-radius: var(--radius-full); padding: 5px 14px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: background 0.2s; }
+    .restore-btn:hover { background: var(--color-light); }
+  </style>
+</head>
+<body>
+<header class="navbar">
+  <div class="nav-logo"><a href="main-feed.html"><img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/><span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span></a></div>
+  <div class="nav-search"><div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search FeedSpace..."/></div></div>
+  <div class="nav-actions">
+    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')"><i class="fas fa-bell"></i><span class="badge">3</span></button>
+    <button class="nav-icon-btn" onclick="toggleDropdown('settingsDropdown')"><i class="fas fa-cog"></i></button>
+    <div class="profile-chip" onclick="window.location.href='profile.html'"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="Profile"/></div>
+    <div class="dropdown" id="notifDropdown"><div class="dropdown-header">Notifications</div><div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Welcome to FeedSpace!</div><div class="notif-time">2 days ago</div></div></div></div>
+    <div class="dropdown" id="settingsDropdown">
+      <div class="dropdown-header">Settings</div>
+      <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
+      <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="window.location.href='index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+    </div>
+  </div>
+</header>
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="sidebar-user"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/></div>
+    <nav class="sidebar-nav">
+      <a href="main-feed.html" data-tooltip="Home"><i class="fas fa-bars"></i></a>
+      <a href="announcements.html" data-tooltip="Announcements"><i class="fas fa-bullhorn"></i></a>
+      <a href="liked.html" data-tooltip="Liked Pages"><i class="fas fa-heart"></i></a>
+      <a href="communities.html" data-tooltip="Communities"><i class="fas fa-th"></i></a>
+      <a href="archive.html" class="active" data-tooltip="Archive"><i class="fas fa-archive"></i></a>
+      <a href="help.html" data-tooltip="Help"><i class="fas fa-question-circle"></i></a>
+    </nav>
+    <a href="about.html" class="sidebar-about" style="text-decoration:none;"><i class="fas fa-info-circle"></i></a>
+  </aside>
+  <main class="main-content">
+    <div class="archive-wrapper">
+      <div class="page-header"><h1><i class="fas fa-archive"></i> Archives</h1><p>Your archived posts are stored here.</p></div>
+
+      <div class="archive-card">
+        <div class="post-header">
+          <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" class="post-avatar"/>
+          <div class="post-meta"><div class="post-author">Trixie May Pontiga</div><div class="post-community">Community Name · <span class="post-time">3 days ago</span></div></div>
+          <button class="options-btn" onclick="restorePost(this)" title="Restore"><i class="fas fa-undo"></i></button>
+        </div>
+        <div class="post-body"><p>Had an amazing weekend trip! The views were breathtaking 🌅</p>
+          <div class="image-grid grid-2">
+            <div class="img-placeholder" style="background:linear-gradient(135deg,#355872,#7AAACE)"></div>
+            <div class="img-placeholder" style="background:linear-gradient(135deg,#9CD5FF,#F7F8F0)"></div>
+          </div>
+        </div>
+        <div class="post-footer">
+          <button class="reaction-btn"><i class="fas fa-heart"></i> <span>34</span></button>
+          <button class="reaction-btn"><i class="fas fa-comment"></i> <span>8</span></button>
+          <button class="restore-btn" onclick="restorePost(this)"><i class="fas fa-undo"></i> Restore</button>
+        </div>
+      </div>
+
+      <div class="archive-card">
+        <div class="post-header">
+          <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" class="post-avatar"/>
+          <div class="post-meta"><div class="post-author">Trixie May Pontiga</div><div class="post-community">Community Name · <span class="post-time">1 week ago</span></div></div>
+        </div>
+        <div class="post-body"><p>Just finished reading an amazing book! Highly recommend it to everyone here 📚✨</p></div>
+        <div class="post-footer">
+          <button class="reaction-btn"><i class="fas fa-heart"></i> <span>19</span></button>
+          <button class="reaction-btn"><i class="fas fa-comment"></i> <span>4</span></button>
+          <button class="restore-btn" onclick="restorePost(this)"><i class="fas fa-undo"></i> Restore</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../js/base.js"></script>
+<script>
+function restorePost(btn) {
+  const card = btn.closest('.archive-card');
+  card.style.transition = 'opacity 0.3s'; card.style.opacity = '0';
+  setTimeout(() => card.remove(), 300);
+  showToast('Post restored to your feed!');
+}
+</script>
+</body>
+</html>

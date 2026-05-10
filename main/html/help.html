@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Help – FeedSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/base.css"/>
+  <style>
+    .help-wrapper { max-width: 660px; }
+    .help-section { background: var(--color-white); border: 2px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .help-section h2 { font-size: 1rem; font-weight: 800; color: var(--color-dark); margin-bottom: 14px; }
+    .faq-item { margin-bottom: 14px; border-bottom: 1px solid var(--color-border); padding-bottom: 14px; }
+    .faq-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .faq-q { font-weight: 700; font-size: 0.9rem; color: var(--color-text); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .faq-a { font-size: 0.86rem; color: var(--color-subtext); margin-top: 8px; line-height: 1.65; display: none; }
+    .faq-a.open { display: block; }
+  </style>
+</head>
+<body>
+<header class="navbar">
+  <div class="nav-logo"><a href="main-feed.html"><img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/><span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span></a></div>
+  <div class="nav-search"><div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search FeedSpace..."/></div></div>
+  <div class="nav-actions">
+    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')"><i class="fas fa-bell"></i><span class="badge">3</span></button>
+    <button class="nav-icon-btn" onclick="toggleDropdown('settingsDropdown')"><i class="fas fa-cog"></i></button>
+    <div class="profile-chip" onclick="window.location.href='profile.html'"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="Profile"/></div>
+    <div class="dropdown" id="notifDropdown"><div class="dropdown-header">Notifications</div></div>
+    <div class="dropdown" id="settingsDropdown">
+      <div class="dropdown-header">Settings</div>
+      <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
+      <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="window.location.href='index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+    </div>
+  </div>
+</header>
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="sidebar-user"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/></div>
+    <nav class="sidebar-nav">
+      <a href="main-feed.html" data-tooltip="Home"><i class="fas fa-bars"></i></a>
+      <a href="announcements.html" data-tooltip="Announcements"><i class="fas fa-bullhorn"></i></a>
+      <a href="liked.html" data-tooltip="Liked Pages"><i class="fas fa-heart"></i></a>
+      <a href="communities.html" data-tooltip="Communities"><i class="fas fa-th"></i></a>
+      <a href="archive.html" data-tooltip="Archive"><i class="fas fa-archive"></i></a>
+      <a href="help.html" class="active" data-tooltip="Help"><i class="fas fa-question-circle"></i></a>
+    </nav>
+    <a href="about.html" class="sidebar-about" style="text-decoration:none;"><i class="fas fa-info-circle"></i></a>
+  </aside>
+  <main class="main-content">
+    <div class="help-wrapper">
+      <div class="page-header"><h1><i class="fas fa-question-circle"></i> Need Help?</h1><p>Find answers to common questions and get support.</p></div>
+      <div class="help-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">How do I create a post? <i class="fas fa-chevron-down"></i></div>
+          <div class="faq-a">Click the "Create Post" button on the home feed or tap the + floating button at the bottom right. Write your message, attach photos if you like, and hit post!</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">How do I join a community? <i class="fas fa-chevron-down"></i></div>
+          <div class="faq-a">Go to the Communities page from the sidebar. Browse available communities and click "Join Community" on any that interest you.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">How do I edit or delete my profile? <i class="fas fa-chevron-down"></i></div>
+          <div class="faq-a">Click the settings (gear) icon in the top navbar or go to your Profile page. You can edit your display name and bio, or delete your profile from the Settings menu.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">How do I report a post? <i class="fas fa-chevron-down"></i></div>
+          <div class="faq-a">Click the options (≡) button on any post, then select "Report." Fill in the reason and submit. Our moderation team will review it.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Where are my archived posts? <i class="fas fa-chevron-down"></i></div>
+          <div class="faq-a">Archived posts are saved in the Archive section. Access it from the sidebar (box icon). You can restore any archived post back to your feed.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">How do I create a community? <i class="fas fa-chevron-down"></i></div>
+          <div class="faq-a">Go to Communities and click "+ Create Community." Fill in the community name, description, and choose the college/administration. Click Confirm to create it!</div>
+        </div>
+      </div>
+      <div class="help-section">
+        <h2>Contact Support</h2>
+        <p style="font-size:0.87rem;color:var(--color-subtext);line-height:1.65;">Still need help? Reach out to our support team at <strong style="color:var(--color-dark);">support@feedspace.ph</strong> or visit the About page for more information about FeedSpace.</p>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../js/base.js"></script>
+<script>
+function toggleFaq(q) {
+  const a = q.nextElementSibling;
+  a.classList.toggle('open');
+  const icon = q.querySelector('i');
+  icon.style.transform = a.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FeedSpace – Where Ka-Piyu Connects</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/base.css"/>
+  <link rel="stylesheet" href="../css/feed.css"/>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="nav-logo">
+    <a href="main-feed.html">
+      <img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+      <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
+    </a>
+  </div>
+
+  <div class="nav-search">
+    <div class="search-bar">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search FeedSpace..."/>
+    </div>
+  </div>
+
+  <div class="nav-actions">
+    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
+      <i class="fas fa-bell"></i><span class="badge">3</span>
+    </button>
+    <button class="nav-icon-btn" onclick="toggleDropdown('settingsDropdown')">
+      <i class="fas fa-cog"></i>
+    </button>
+    <div class="profile-chip" onclick="window.location.href='profile.html'">
+      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="Profile"/>
+    </div>
+
+    <div class="dropdown" id="notifDropdown">
+      <div class="dropdown-header">Notification</div>
+      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Trixie liked your post</div><div class="notif-time">2 minutes ago</div></div></div>
+      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">New announcement in Community</div><div class="notif-time">1 hour ago</div></div></div>
+      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Someone shared your post</div><div class="notif-time">3 hours ago</div></div></div>
+      <div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Welcome to FeedSpace!</div><div class="notif-time">2 days ago</div></div></div>
+    </div>
+
+    <div class="dropdown" id="settingsDropdown">
+      <div class="dropdown-header">Settings</div>
+      <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
+      <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="window.location.href='index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+    </div>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="sidebar-user">
+      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="main-feed.html" class="active" data-tooltip="Home"><i class="fas fa-bars"></i></a>
+      <a href="announcements.html" data-tooltip="Announcements"><i class="fas fa-bullhorn"></i></a>
+      <a href="liked.html" data-tooltip="Liked Pages"><i class="fas fa-heart"></i></a>
+      <a href="communities.html" data-tooltip="Communities"><i class="fas fa-th"></i></a>
+      <a href="archive.html" data-tooltip="Archive"><i class="fas fa-archive"></i></a>
+      <a href="help.html" data-tooltip="Help"><i class="fas fa-question-circle"></i></a>
+    </nav>
+    <a href="about.html" class="sidebar-about" style="text-decoration:none;"><i class="fas fa-info-circle"></i></a>
+  </aside>
+
+  <main class="main-content">
+    <div class="content-center">
+
+      <!-- Create Post Card -->
+      <div class="create-post-card">
+        <div class="create-post-top">
+          <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
+          <input type="text" id="newPostInput" class="create-post-input" placeholder="Spill what's brewing, Ka-Piyu !" onclick="openPostModal('')"/>
+          <button class="create-post-btn" onclick="openPostModal('')">+ Create Post</button>
+        </div>
+      </div>
+
+      <!-- Feed Posts -->
+      <div id="feedPosts">
+
+        <div class="post-card">
+          <div class="post-header">
+            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" class="post-avatar"/>
+            <div class="post-meta">
+              <div class="post-author">Trixie May Pontiga</div>
+              <div class="post-community">Community Name · <span class="post-time">2 hrs ago</span></div>
+            </div>
+            <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
+            <div class="post-options-menu">
+              <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
+              <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
+              <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
+              <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
+            </div>
+          </div>
+          <div class="post-body">
+            <p>Hey everyone! Just wanted to share something that made my day 🥰 It's the little things that matter most. Hope you all have a great day ahead!</p>
+          </div>
+          <div class="post-footer">
+            <button class="reaction-btn" onclick="toggleLike(this)"><i class="far fa-heart"></i> <span>12</span></button>
+            <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
+            <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
+          </div>
+          <div class="comment-section" style="display:none;">
+            <div class="comment-input-row">
+              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
+              <div class="comment-input-wrap">
+                <input type="text" placeholder="Write a comment..."/>
+                <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
+              </div>
+            </div>
+            <div class="comment-item">
+              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="User"/>
+              <div class="comment-bubble"><div class="comment-author">Trixie May Pontiga</div><div class="comment-text">This is so wholesome! 💙</div></div>
+            </div>
+            <div class="comment-item">
+              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Maya" alt="User"/>
+              <div class="comment-bubble"><div class="comment-author">Maya Santos</div><div class="comment-text">Agreed! Little things matter most 🌸</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-header">
+            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Maya" alt="User" class="post-avatar"/>
+            <div class="post-meta">
+              <div class="post-author">Trixie May Pontiga</div>
+              <div class="post-community">Community Name · <span class="post-time">5 hrs ago</span></div>
+            </div>
+            <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
+            <div class="post-options-menu">
+              <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
+              <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
+              <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
+              <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
+            </div>
+          </div>
+          <div class="post-body">
+            <p>Had so much fun exploring today! 😍 Here are some shots from the trip~</p>
+            <div class="image-grid grid-3">
+              <div class="img-placeholder" style="background:linear-gradient(135deg,#7AAACE,#9CD5FF)"></div>
+              <div class="img-placeholder" style="background:linear-gradient(135deg,#355872,#7AAACE)"></div>
+              <div class="img-placeholder" style="background:linear-gradient(135deg,#9CD5FF,#F7F8F0)"></div>
+            </div>
+          </div>
+          <div class="post-footer">
+            <button class="reaction-btn liked" onclick="toggleLike(this)"><i class="fas fa-heart"></i> <span>47</span></button>
+            <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
+            <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
+          </div>
+          <div class="comment-section" style="display:none;">
+            <div class="comment-input-row">
+              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
+              <div class="comment-input-wrap">
+                <input type="text" placeholder="Write a comment..."/>
+                <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Create Post Modal -->
+<div class="modal-overlay" id="postModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="User" style="width:32px;height:32px;border-radius:50%;"/>
+        <div>
+          <div style="font-weight:800;font-size:0.9rem;color:var(--color-dark);">Trixie May Pontiga</div>
+          <div style="font-size:0.74rem;color:var(--color-subtext);">Community Name</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal('postModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <textarea id="modalPostText" placeholder="What's on your mind?" rows="5"></textarea>
+      <div class="modal-attach-btns">
+        <button class="modal-attach-btn"><i class="fas fa-image"></i> Photo</button>
+        <button class="modal-attach-btn"><i class="fas fa-file"></i> File</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitPost()">+ Create Post</button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Post Modal -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="report-modal-icon"><i class="fas fa-exclamation-circle"></i><span>REPORT POST</span></div>
+      <button class="modal-close" onclick="closeModal('reportModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <textarea class="report-textarea" placeholder="Why do you want to report this post?"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share Post Modal -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="User" style="width:32px;height:32px;border-radius:50%;"/>
+        <div>
+          <div style="font-weight:800;font-size:0.9rem;color:var(--color-dark);">Trixie May Pontiga</div>
+          <div style="font-size:0.74rem;color:var(--color-subtext);">Community Name</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal('shareModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <textarea id="shareText" placeholder="Add a comment..." rows="3"></textarea>
+      <div class="shared-post-preview">
+        <div class="sp-author">Trixie May Pontiga · Community Name</div>
+        <div class="sp-text" id="sharePostPreview">*Shared post layout</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitShare()">Share Post</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/base.js"></script>
+<script src="../js/feed.js"></script>
+</body>
+</html>

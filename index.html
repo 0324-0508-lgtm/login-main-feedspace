@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SignIn – FeedSpace</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="main/css/auth.css"/>
+    <link rel="stylesheet" href="main/css/base.css" />
+    <style>
+      /* School ID Input Styling */
+      .school-id-input {
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-align: center;
+      }
+      .school-id-helper {
+        font-size: 0.8rem;
+        color: var(--color-subtext);
+        margin-top: 4px;
+      }
+
+      /* Password Toggle Styling */
+      .password-input-wrapper {
+        display: flex;
+        align-items: center;
+        border: 2px solid var(--color-border, #ddd);
+        border-radius: 10px;
+        background: var(--color-white, white);
+      }
+      .password-input-wrapper .form-input {
+        flex: 1;
+        border: none;
+        padding: 11px 14px;
+        background: transparent;
+      }
+      .toggle-password {
+        background: var(--color-cream, #f8f9fa);
+        border: none;
+        color: var(--color-dark, #333);
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 8px 12px;
+        border-radius: 0 8px 8px 0;
+        margin-left: -2px;
+      }
+      .toggle-password:hover {
+        background: #e8f0f7;
+      }
+    </style> 
+  </head>
+  <body>
+    <div class="MainContainer">
+      <!-- Your leftside image container stays the same -->
+      <div class="leftside">
+        <div class="imgContainer">
+        </div>
+      </div>
+
+      <div class="rightside">
+        <a href="index.html" style="text-decoration: none; color: inherit">
+<img src="main\assets\logo-nobg.png" alt="logo" class="sm-logo" /> 
+        </a>
+        <h1 class="title">Welcome To FeedSpace!</h1>
+        <p class="subtitle">Where Ka-Piyu Connects!</p>
+
+        <form action="" class="Loginform" id="loginOtpForm">
+          <h1 class="form-head">Log In with OTP</h1>
+
+          <!-- EMAIL -->
+          <div class="inputContainer">
+            <label for="loginEmail">Email Address</label>
+            <input
+              type="email"
+              id="loginEmail"
+              class="form-input"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+            />
+            <p id="loginOtpMessage" class="otp-message"></p>
+          </div>
+
+          <button type="button" class="signinBtn" id="sendOtpBtn" onclick="handleLoginOtpSend(event)">Send OTP</button>
+        </form>
+
+
+        <p>
+          Don't have an account yet?
+        <a href="main/html/signup.html" class="createacc">Create an Account</a> 
+        </p>
+      </div>
+    </div>
+
+    <script src="main/js/base.js"></script>
+    <script src="main/js/auth.js"></script>
+    <script>
+
+      let __loginOtp = {
+        userId: null,
+        expiresInSeconds: 600,
+        timer: null
+      };
+
+      function setOtpTimer(seconds) {
+        __loginOtp.expiresInSeconds = seconds;
+        const timerText = document.getElementById('otpTimerText');
+        const resendBtn = document.getElementById('resendOtpBtn');
+
+        if (!timerText || !resendBtn) return;
+
+        const pad2 = (n) => String(n).padStart(2, '0');
+
+        const tick = () => {
+          const s = __loginOtp.expiresInSeconds;
+          const mm = Math.floor(s / 60);
+          const ss = s % 60;
+          timerText.textContent = `Resend available in ${pad2(mm)}:${pad2(ss)}`;
+          if (s <= 0) {
+            clearInterval(__loginOtp.timer);
+            __loginOtp.timer = null;
+            resendBtn.disabled = false;
+            timerText.textContent = 'You can resend the code now';
+            return;
+          }
+          __loginOtp.expiresInSeconds -= 1;
+        };
+
+        tick();
+        if (__loginOtp.timer) clearInterval(__loginOtp.timer);
+        __loginOtp.timer = setInterval(tick, 1000);
+      }
+
+      async function loginOtpSendRequest(email) {
+        const res = await fetch('main/api/users/auth/login-otp.php', {
+          method: 'POST',
+          body: new URLSearchParams({ email }),
+          credentials: 'same-origin'
+        });
+
+        const contentType = res.headers.get('content-type') || '';
+        const rawBody = await res.text();
+
+        if (contentType.includes('application/json')) {
+          try {
+            return JSON.parse(rawBody);
+          } catch {
+            return { error: rawBody };
+          }
+        }
+
+        return { error: rawBody };
+      }
+
+      window.handleLoginOtpSend = async function handleLoginOtpSend(event) {
+        if (event && event.submitter) {
+          // Prevent default double-submit issues
+          event.submitter.blur?.();
+        }
+
+        event.preventDefault();
+        if (window.__loginOtpLoading) return;
+
+        const email = document.getElementById('loginEmail')?.value?.trim();
+        if (!email) {
+          showToast('Enter your email address');
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showToast('Enter a valid email address');
+          return;
+        }
+
+        const btn = event.target.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.dataset.originalText = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        }
+
+        window.__loginOtpLoading = true;
+        setLoginOtpMessage('');
+        try {
+          const result = await loginOtpSendRequest(email);
+
+          if (result && result.success) {
+            __loginOtp.userId = result.user_id;
+            setLoginOtpMessage(result.message || 'OTP sent to your email', true);
+            const otpParam = result.otp_code ? `&otp_code=${encodeURIComponent(result.otp_code)}` : '';
+            // Redirect to verify account page and show code only there when available
+            setTimeout(() => {
+              window.location.href = `main/html/verify-account.html?user_id=${result.user_id}${otpParam}`;
+            }, 1000);
+          } else {
+            const message = result?.error || result?.message || 'Unable to send OTP';
+            setLoginOtpMessage(message, false);
+            showToast(message);
+          }
+        } finally {
+          window.__loginOtpLoading = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = btn.dataset.originalText || 'Send OTP';
+          }
+        }
+      };
+
+      function setLoginOtpMessage(message, success = false) {
+        const el = document.getElementById('loginOtpMessage');
+        if (!el) return;
+        el.textContent = message || '';
+        el.classList.toggle('success', success);
+      }
+
+      window.handleLoginOtpResend = async function handleLoginOtpResend() {
+        if (!__loginOtp.userId) {
+          showToast('Send OTP first');
+          return;
+        }
+
+        const email = document.getElementById('loginEmail')?.value?.trim();
+        if (!email) {
+          showToast('Enter your email address');
+          return;
+        }
+
+        setLoginOtpMessage('Resending OTP...', true);
+        const resendBtn = document.getElementById('resendOtpBtn');
+        if (resendBtn) resendBtn.disabled = true;
+
+        const result = await loginOtpSendRequest(email);
+        if (result && result.success) {
+          __loginOtp.userId = result.user_id;
+          setOtpTimer(600);
+          setLoginOtpMessage(result.message || 'OTP resent successfully', true);
+        } else {
+          setLoginOtpMessage(result?.error || result?.message || 'Unable to resend OTP', false);
+          if (resendBtn) resendBtn.disabled = false;
+        }
+      };
+
+      function getOtpCodeFromInputs() {
+        const inputs = document.querySelectorAll('#otpSection .otp-input');
+        return Array.from(inputs).map(i => (i.value || '').trim()).join('');
+      }
+
+      window.handleLoginOtpVerify = async function handleLoginOtpVerify() {
+        const otpCode = getOtpCodeFromInputs();
+        if (!__loginOtp.userId) {
+          showToast('Send OTP first');
+          return;
+        }
+        if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+          showToast('Please enter the complete 6-digit code');
+          return;
+        }
+
+        const verifyBtn = document.getElementById('verifyOtpBtn');
+        if (verifyBtn) {
+          verifyBtn.disabled = true;
+          verifyBtn.dataset.originalText = verifyBtn.innerHTML;
+          verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        }
+
+        let result = null;
+        try {
+          const formData = new URLSearchParams({
+            user_id: __loginOtp.userId,
+            otp_code: otpCode
+          });
+
+          const res = await fetch('main/api/users/auth/verify-otp.php', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+          });
+          const contentType = res.headers.get('content-type') || '';
+          const rawBody = await res.text();
+          result = contentType.includes('application/json') ? JSON.parse(rawBody) : { error: rawBody };
+
+          if (result && result.success) {
+            showToast('Verified successfully');
+            if (verifyBtn) {
+              verifyBtn.disabled = true;
+              verifyBtn.innerHTML = 'Verified';
+            }
+            const continueBtn = document.getElementById('continueOtpBtn');
+            if (continueBtn) {
+              continueBtn.style.display = 'block';
+            }
+          } else {
+            showToast(result?.error || 'OTP verification failed');
+            if (verifyBtn) {
+              verifyBtn.disabled = false;
+            }
+          }
+        } catch (e) {
+          showToast('OTP verification failed');
+        } finally {
+          if (verifyBtn && !(result && result.success)) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = verifyBtn.dataset.originalText || 'Verify';
+          }
+        }
+      };
+
+      window.handleLoginOtpContinue = function handleLoginOtpContinue() {
+        if (!__loginOtp.userId) {
+          showToast('Send OTP first');
+          return;
+        }
+        window.location.href = 'main/html/main-feed.html';
+      };
+
+      window.addEventListener('DOMContentLoaded', function () {
+        const loginOtpForm = document.getElementById('loginOtpForm');
+        if (loginOtpForm) {
+          loginOtpForm.addEventListener('submit', handleLoginOtpSend);
+        }
+      });
+
+      document.addEventListener('input', function (e) {
+        const t = e.target;
+        if (!t || !t.classList || !t.classList.contains('otp-input')) return;
+        if (t.value && t.value.length >= 1) {
+          const inputs = Array.from(document.querySelectorAll('#otpSection .otp-input'));
+          const idx = inputs.indexOf(t);
+          if (idx >= 0 && idx < inputs.length - 1) inputs[idx + 1].focus();
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        const t = e.target;
+        if (!t || !t.classList || !t.classList.contains('otp-input')) return;
+        const inputs = Array.from(document.querySelectorAll('#otpSection .otp-input'));
+        const idx = inputs.indexOf(t);
+        if (e.key === 'Backspace' && idx > 0 && !t.value) {
+          inputs[idx - 1].focus();
+        }
+      });
+    </script>
+  </body>
+</html>
+
