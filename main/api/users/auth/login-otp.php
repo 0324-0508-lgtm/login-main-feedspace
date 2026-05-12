@@ -9,6 +9,8 @@ require_once __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
+date_default_timezone_set('Asia/Manila');
+
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -17,17 +19,16 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
-// Accept either user_id or email
 $user_id = trim($_POST['user_id'] ?? '');
 $email   = trim($_POST['email'] ?? '');
 
-if (empty($user_id) && empty($email)) {
+if (!$user_id && !$email) {
     echo json_encode(['success' => false, 'error' => 'Missing user_id or email']);
     exit();
 }
 
-// Get user by user_id or email
-if (!empty($user_id)) {
+/* ---------------- FETCH USER ---------------- */
+if ($user_id) {
     $stmt = $conn->prepare("SELECT * FROM users WHERE user_id = ?");
     $stmt->bind_param("s", $user_id);
 } else {
@@ -36,32 +37,55 @@ if (!empty($user_id)) {
 }
 
 $stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
+$user = $stmt->get_result()->fetch_assoc();
 
 if (!$user) {
     echo json_encode(['success' => false, 'error' => 'User not found']);
     exit();
 }
 
-// Generate OTP
+$user_id = $user['user_id'];
+
+/* ---------------- DELETE OLD OTP ---------------- */
+$delete = $conn->prepare("
+    DELETE FROM otp
+    WHERE user_id = ?
+    AND type = 'login'
+");
+
+if (!$delete) {
+    echo json_encode(['success' => false, 'error' => $conn->error]);
+    exit();
+}
+
+$delete->bind_param("s", $user_id);
+$delete->execute();
+
+/* ---------------- GENERATE OTP ---------------- */
 $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 $expires_at = date('Y-m-d H:i:s', strtotime('+3 minutes'));
 
-// Save OTP to DB
+/* ---------------- INSERT OTP ---------------- */
 $otpStmt = $conn->prepare("
     INSERT INTO otp (user_id, otp_code, type, expires_at, is_used)
     VALUES (?, ?, 'login', ?, 0)
-    ON DUPLICATE KEY UPDATE 
-        otp_code = VALUES(otp_code), 
-        expires_at = VALUES(expires_at), 
-        is_used = 0
 ");
-$otpStmt->bind_param("sss", $user['user_id'], $otp, $expires_at);
-$otpStmt->execute();
 
-// Send email
+if (!$otpStmt) {
+    echo json_encode(['success' => false, 'error' => $conn->error]);
+    exit();
+}
+
+$otpStmt->bind_param("sss", $user_id, $otp, $expires_at);
+
+if (!$otpStmt->execute()) {
+    echo json_encode(['success' => false, 'error' => 'Failed to save OTP']);
+    exit();
+}
+
+/* ---------------- SEND EMAIL ---------------- */
 $mail = new PHPMailer(true);
+
 try {
     $mail->isSMTP();
     $mail->Host       = $_ENV['MAIL_HOST'];
@@ -76,16 +100,16 @@ try {
 
     $mail->isHTML(true);
     $mail->Subject = 'Your FeedSpace Verification Code';
-    $mail->Body    = "
+
+    $mail->Body = "
         <div style='font-family: sans-serif; max-width: 480px; margin: auto;'>
-            <h2 style='color: #7c3aed;'>FeedSpace Verification</h2>
+            <h2 style='color: #4141ff;'>FeedSpace Verification</h2>
             <p>Hi {$user['first_name']},</p>
-            <p>Your one-time login code is:</p>
-            <div style='font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #7c3aed; margin: 20px 0;'>
+            <p>Your OTP code is:</p>
+            <div style='font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #589eff; margin: 20px 0;'>
                 {$otp}
             </div>
-            <p>This code expires in <strong>3 minutes</strong>.</p>
-            <p style='color: #888; font-size: 13px;'>If you didn't request this, ignore this email.</p>
+            <p>Expires in <strong>3 minutes</strong>.</p>
         </div>
     ";
 
@@ -93,11 +117,11 @@ try {
 
     echo json_encode([
         'success' => true,
-        'user_id' => $user['user_id'],
-        'message' => 'OTP sent to your email'
+        'user_id' => $user_id,
+        'message' => 'OTP sent'
     ]);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => 'Email failed: ' . $mail->ErrorInfo]);
+    echo json_encode(['success' => false, 'error' => $mail->ErrorInfo]);
 }
 ?>

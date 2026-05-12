@@ -137,13 +137,15 @@ async function handleLogin(event) {
 if (result && result.success) {
     showToast('OTP sent to your email! 📧');
     setTimeout(() => {
-        window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
+        window.location.href = `verify-account.html?user_id=${result.user_id}`;
     }, 1000);
     return;
 }
 
   showToast(errorMessage || 'Login failed');
 }
+
+
 
 // 2. REGISTER (for signup.html)
 async function handleRegister(event) {
@@ -194,12 +196,7 @@ async function handleRegister(event) {
   setLoading(btn, false);
   isLoading = false;
 
-if (result && result.success) {
-    showToast('OTP sent to your email! 📧');
-    setTimeout(() => {
-        window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
-    }, 1000);
-    return;
+window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
 }
 
 // 3. FORGOT PASSWORD
@@ -231,7 +228,7 @@ async function handleForgotPassword(event) {
     showToast('OTP sent to your email! 📧');
     setTimeout(() => {
         // Pass user_id to verify page
-        window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
+        window.location.href = `verify-account.html?user_id=${result.user_id}`;
     }, 1000);
     return;
 }
@@ -251,12 +248,15 @@ async function verifyOTP(data) {
   console.log('verifyOTP called with data:', data);
   const result = await postAuth('verify-otp.php', data);
   console.log('verifyOTP result:', result);
+ console.log("SENT TO SERVER:", data);
+
   if (result && result.success) {
     showToast('Login successful!');
     setTimeout(() => {
       window.location.href = './main-feed.html';
     }, 1500);
-  } else {
+  } 
+  else {
     const errorMessage = result?.error || (typeof result === 'string' ? result : 'OTP verification failed');
     showToast(errorMessage);
   }
@@ -280,4 +280,4 @@ window.sendOTP = sendOTP;
 window.verifyOTP = verifyOTP;
 
 console.log('FeedSpace Auth.js loaded - Login/Register/OTP/Logout ready!');
-}
+

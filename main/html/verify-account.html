@@ -186,9 +186,11 @@
         startVerifyTimer();
 
         // Call login-otp.php with user_id for resend
-        const result = await postAuth('login-otp.php', { 
-          user_id: userId
-        });
+        const result = await postAuth('resend-otp.php', {
+  user_id: userId
+});
+
+
         if (result && result.success) {
           showToast('Verification code resent!');
           const otpText = document.getElementById('visibleOtpText');

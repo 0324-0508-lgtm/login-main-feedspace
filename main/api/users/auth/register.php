@@ -1,4 +1,11 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require_once __DIR__ . '/vendor/autoload.php';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
 session_start();
 include '../../../../config/db.php';
 header('Content-Type: application/json; charset=utf-8');
@@ -18,7 +25,6 @@ $bio        = trim($_POST['bio'] ?? '');
 $role       = trim($_POST['role'] ?? '');
 $college    = trim($_POST['college'] ?? '');
 
-// Basic validation
 if (empty($first_name) || empty($last_name) || empty($student_id) || empty($email) || empty($password) || empty($role) || empty($college)) {
     http_response_code(400);
     echo json_encode(['error' => 'All fields required']);
@@ -31,7 +37,6 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit();
 }
 
-// Normalize student ID to XXXX-XXXX format
 $student_id = preg_replace('/[^0-9]/', '', $student_id);
 if (strlen($student_id) !== 8) {
     http_response_code(400);
@@ -40,7 +45,6 @@ if (strlen($student_id) !== 8) {
 }
 $student_id = substr($student_id, 0, 4) . '-' . substr($student_id, 4);
 
-// Check email exists
 $check = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
 $check->bind_param("s", $email);
 $check->execute();
@@ -50,7 +54,6 @@ if ($check->get_result()->num_rows > 0) {
     exit();
 }
 
-// Check student ID exists
 $check_id = $conn->prepare("SELECT user_id FROM users WHERE user_id = ?");
 $check_id->bind_param("s", $student_id);
 $check_id->execute();
@@ -60,64 +63,75 @@ if ($check_id->get_result()->num_rows > 0) {
     exit();
 }
 
-// Use the provided student ID as the user_id
 $user_id = $student_id;
-
-// Insert user
 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 $profile_picture = "default.png";
 $created_at = date('Y-m-d H:i:s');
 
 $stmt = $conn->prepare("INSERT INTO users (user_id, first_name, last_name, email, password_hash, profile_picture, bio, role, college, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$stmt->bind_param(
-    "ssssssssss",
-    $user_id, $first_name, $last_name, $email, $hashed_password,
-    $profile_picture, $bio, $role, $college, $created_at
-);
+$stmt->bind_param("ssssssssss", $user_id, $first_name, $last_name, $email, $hashed_password, $profile_picture, $bio, $role, $college, $created_at);
 
 if ($stmt->execute()) {
     $_SESSION['user_id'] = $user_id;
     $_SESSION['email'] = $email;
 
-    // Generate OTP for email verification
-    $otp = sprintf("%06d", rand(100000, 999999));
+    $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
-    // Delete old OTPs
     $deleteOtp = $conn->prepare("DELETE FROM otp WHERE user_id = ?");
     $deleteOtp->bind_param("s", $user_id);
     $deleteOtp->execute();
 
-    // Insert new OTP
-    $otp_stmt = $conn->prepare("INSERT INTO otp (user_id, otp_code, expires_at, created_at) VALUES (?, ?, ?, NOW())");
+    $otp_stmt = $conn->prepare("INSERT INTO otp (user_id, otp_code, type, expires_at, created_at) VALUES (?, ?, 'login', ?, NOW())");
     $otp_stmt->bind_param("sss", $user_id, $otp, $expires_at);
     $otp_stmt->execute();
 
-    // Send OTP email (optional, SMTP may not be configured)
-    @sendEmailOTP($email, $first_name, $otp);
+    $emailSent = sendEmailOTP($email, $first_name, $otp);
 
     echo json_encode([
-        'success' => true,
-        'user_id' => $user_id,
-        'message' => 'Account created! Please verify your email.'
+        'success'  => true,
+        'user_id'  => $user_id,
+        'otp_code' => $otp, // remove in production
+        'message'  => 'Account created! Please verify your email.'
     ]);
 } else {
     http_response_code(500);
     echo json_encode(['error' => 'Registration failed: ' . $stmt->error]);
 }
 
-// Function to send OTP email
 function sendEmailOTP($email, $first_name, $otp) {
-    $subject = "Your Verification Code";
-    $message = "Hello $first_name!\n\n";
-    $message .= "Your verification code is: $otp\n\n";
-    $message .= "This code expires in 10 minutes.\n";
-    $message .= "If you didn't request this, ignore this email.\n";
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = $_ENV['MAIL_HOST'];
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $_ENV['MAIL_USERNAME'];
+        $mail->Password   = $_ENV['MAIL_PASSWORD'];
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $_ENV['MAIL_PORT'];
 
-    $headers = "From: noreply@yourapp.com\r\n";
-    $headers .= "Reply-To: support@yourapp.com\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $mail->setFrom($_ENV['MAIL_USERNAME'], $_ENV['MAIL_FROM_NAME']);
+        $mail->addAddress($email, $first_name);
+        $mail->isHTML(true);
+        $mail->Subject = 'Your FeedSpace Verification Code';
+        $mail->Body    = "
+            <div style='font-family: sans-serif; max-width: 480px; margin: auto;'>
+                <h2 style='color: #2a75ff;'>FeedSpace Verification</h2>
+                <p>Hi {$first_name},</p>
+                <p>Your one-time verification code is:</p>
+                <div style='font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #4a77ff; margin: 20px 0;'>
+                    {$otp}
+                </div>
+                <p>This code expires in <strong>10 minutes</strong>.</p>
+                <p style='color: #888; font-size: 13px;'>If you didn't request this, ignore this email.</p>
+            </div>
+        ";
 
-    @mail($email, $subject, $message, $headers);
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log('Mail error: ' . $mail->ErrorInfo);
+        return false;
+    }
 }
 ?>
