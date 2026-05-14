@@ -26,6 +26,14 @@ if (!$user) {
 
 $otp = rand(100000, 999999);
 
+// DELETE existing OTP first
+$delete = $pdo->prepare("
+DELETE FROM otp
+WHERE user_id = ? AND type = 'login'
+");
+$delete->execute([$user['user_id']]);
+
+// INSERT new OTP
 $stmt = $pdo->prepare("
 INSERT INTO otp (user_id, otp_code, type, expires_at)
 VALUES (?, ?, 'login', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
