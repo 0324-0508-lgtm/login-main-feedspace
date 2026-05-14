@@ -95,7 +95,7 @@
 
         <p>
           Don't have an account yet?
-        <a href="main/html/signup.html" class="createacc">Create an Account</a> 
+        <a href="main/html/register.html" class="createacc">Create an Account</a> 
         </p>
       </div>
     </div>
@@ -182,7 +182,7 @@ const email = emailInput ? emailInput.value.trim() : '';
           return;
         }
 
-        const btn = event.target.querySelector('button[type="submit"]');
+        const btn = document.getElementById('sendOtpBtn');
         if (btn) {
           btn.disabled = true;
           btn.dataset.originalText = btn.innerHTML;
@@ -200,7 +200,7 @@ const email = emailInput ? emailInput.value.trim() : '';
             const otpParam = result.otp_code ? `&otp_code=${encodeURIComponent(result.otp_code)}` : '';
             // Redirect to verify account page and show code only there when available
             setTimeout(() => {
-              window.location.href = `main/html/verify-account.html?user_id=${result.user_id}${otpParam}`;
+window.location.href = `main/html/verify-account.html?user_id=${encodeURIComponent(result.user_id)}`;
             }, 1000);
           } else {
             const message = result?.error || result?.message || 'Unable to send OTP';

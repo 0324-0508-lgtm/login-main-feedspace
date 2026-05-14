@@ -1,42 +1,51 @@
 <?php
 header("Content-Type: application/json");
-
 require_once __DIR__ . '/../config/db.php';
-$data = json_decode(file_get_contents("php://input"), true);
 
-$user_id = $data['user_id'] ?? '';
-$otp     = $data['otp'] ?? '';
+$data = $_POST;
 
-$stmt = $pdo->prepare("
-SELECT * FROM otp
-WHERE user_id = ?
-AND otp_code = ?
-AND is_used = 0
-AND expires_at > NOW()
-");
+$user_id = trim($data['user_id'] ?? '');
+$otp_code = trim($data['otp_code'] ?? '');
 
-$stmt->execute([$user_id, $otp]);
-
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$row) {
+if (!$user_id || !$otp_code) {
     echo json_encode([
         "success" => false,
-        "message" => "Invalid or expired OTP"
+        "message" => "Missing OTP or user ID"
     ]);
     exit;
 }
 
-$update = $pdo->prepare("
-UPDATE otp
-SET is_used = 1
-WHERE otp_id = ?
+$stmt = $pdo->prepare("
+SELECT * FROM otp
+WHERE user_id = ? AND otp_code = ? AND type = 'login'
+ORDER BY expires_at DESC
+LIMIT 1
 ");
 
-$update->execute([$row['otp_id']]);
+$stmt->execute([$user_id, $otp_code]);
+$otp = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$otp) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Invalid OTP"
+    ]);
+    exit;
+}
+
+if (strtotime($otp['expires_at']) < time()) {
+    echo json_encode([
+        "success" => false,
+        "message" => "OTP expired"
+    ]);
+    exit;
+}
+
+// optional: delete OTP after success
+$del = $pdo->prepare("DELETE FROM otp WHERE user_id = ? AND type = 'login'");
+$del->execute([$user_id]);
 
 echo json_encode([
     "success" => true,
     "message" => "OTP verified"
 ]);
-?>

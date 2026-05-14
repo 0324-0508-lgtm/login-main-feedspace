@@ -1,10 +1,13 @@
 <?php
-header("Content-Type: application/json");
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/../config/db.php';
-require "includes/otp-generator.php";
+require_once __DIR__ . '/../includes/otp-generator.php';
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = $_POST;
 
 $first_name = trim($data['first_name'] ?? '');
 $last_name  = trim($data['last_name'] ?? '');
@@ -31,7 +34,9 @@ if ($stmt->fetch()) {
     exit;
 }
 
-$user_id = strtoupper(substr(md5(uniqid()), 0, 9));
+$user_id = trim($data['student_id'] ?? '');
+
+// Keep user_id exactly as user input (e.g. 0324-0708).
 
 $password_hash = password_hash($password, PASSWORD_DEFAULT);
 

@@ -157,14 +157,7 @@ async function handleRegister(event) {
     showToast('Please fill in all required fields.');
     return;
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Enter a valid email address');
-    return;
-  }
-  if (password.length < 8) {
-    showToast('Password must be at least 8 characters');
-    return;
-  }
+
   if (password !== confirm) {
     showToast('Passwords do not match');
     return;
@@ -175,20 +168,42 @@ async function handleRegister(event) {
   setLoading(btn, true);
   isLoading = true;
 
-  const result = await postAuth('register.php', {
-    first_name,
-    last_name,
-    student_id,
-    email,
-    password,
-    role,
-    college
-  });
+  try {
+    const res = await fetch('../../auth/register.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: new URLSearchParams({
+        first_name,
+        last_name,
+        student_id,
+        email,
+        password,
+        role,
+        college
+      }),
+      credentials: 'same-origin'
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      showToast('Account created successfully! Please log in.');
+      setTimeout(() => {
+window.location.href = '../../index.html';
+      }, 1000);
+    } else {
+      showToast(result.message || 'Registration failed');
+    }
+
+  } catch (err) {
+    showToast('Server error. Please try again.');
+    console.error(err);
+  }
 
   setLoading(btn, false);
   isLoading = false;
-
-window.location.href = `main/html/verify-account.html?user_id=${result.user_id}`;
 }
 
 // 3. FORGOT PASSWORD
@@ -253,9 +268,10 @@ async function verifyOTP(data) {
     setTimeout(() => {
       if (data.mode === 'forgot') {
         window.location.href = 'reset-password.html';
-      } else {
-        window.location.href = 'main-feed.html';
+} else {
+        window.location.href = 'main/html/main-feed.html';
       }
+
     }, 1500);
   } else {
     const errorMessage = result?.error || (typeof result === 'string' ? result : 'OTP verification failed');
