@@ -82,7 +82,7 @@
               type="email"
               id="loginEmail"
               class="form-input"
-              placeholder="you@example.com"
+              placeholder="XXXX-XXXX@example.com"
               autocomplete="email"
               required
             />
@@ -140,7 +140,7 @@
       }
 
       async function loginOtpSendRequest(email) {
-        const res = await fetch('main/api/users/auth/login-otp.php', {
+        const res = await fetch('/login-main-feedspace/login-main-feedspace/auth/login-otp.php', {
           method: 'POST',
           body: new URLSearchParams({ email }),
           credentials: 'same-origin'
@@ -166,10 +166,13 @@
           event.submitter.blur?.();
         }
 
+        console.log("EMAIL INPUT:", document.getElementById('loginEmail')?.value);
+
         event.preventDefault();
         if (window.__loginOtpLoading) return;
 
-        const email = document.getElementById('loginEmail')?.value?.trim();
+const emailInput = document.getElementById('loginEmail');
+const email = emailInput ? emailInput.value.trim() : '';
         if (!email) {
           showToast('Enter your email address');
           return;
@@ -226,7 +229,8 @@
           return;
         }
 
-        const email = document.getElementById('loginEmail')?.value?.trim();
+const emailInput = document.getElementById('loginEmail');
+const email = emailInput ? emailInput.value.trim() : '';
         if (!email) {
           showToast('Enter your email address');
           return;
@@ -327,7 +331,6 @@
       window.addEventListener('DOMContentLoaded', function () {
         const loginOtpForm = document.getElementById('loginOtpForm');
         if (loginOtpForm) {
-          loginOtpForm.addEventListener('submit', handleLoginOtpSend);
         }
       });
 

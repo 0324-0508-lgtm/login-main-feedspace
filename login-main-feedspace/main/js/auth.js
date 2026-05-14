@@ -53,15 +53,7 @@ function setLoading(btn, show = true) {
 }
 
 // API base path
-const API_BASE = (() => {
-  const path = window.location.pathname.replace(/\\\/+$/, '');
-  if (path.includes('/main/html/')) {
-    return '../api/users/auth/';
-  }
-  return 'main/api/users/auth/';
-})();
-
-// Generic POST helper
+  // Generic POST helper
 async function postAuth(endpoint, data) {
   const formData = new FormData();
   for (let key in data) {
