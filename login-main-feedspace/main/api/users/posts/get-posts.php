@@ -25,13 +25,19 @@ $offset = ($page - 1) * $limit;
 // Get posts (exclude banned users' posts)
 $stmt = $conn->prepare("
     SELECT 
-        p.id, p.content, p.image, p.created_at,
-        u.user_id, u.first_name, u.last_name, u.profile_picture,
-        (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id) as like_count,
-        (SELECT COUNT(*) FROM shares s WHERE s.post_id = p.id) as share_count,
-        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count,
-        EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = ?) as user_liked,
-        EXISTS(SELECT 1 FROM shares s WHERE s.post_id = p.id AND s.user_id = ?) as user_shared
+        p.post_id AS id,
+        p.content,
+        p.file_url AS image,
+        p.created_at,
+        u.user_id,
+        u.first_name,
+        u.last_name,
+        u.profile_picture,
+        (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) as like_count,
+        (SELECT COUNT(*) FROM shares s WHERE s.post_id = p.post_id) as share_count,
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comment_count,
+        EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) as user_liked,
+        EXISTS(SELECT 1 FROM shares s WHERE s.post_id = p.post_id AND s.user_id = ?) as user_shared
     FROM posts p
     JOIN users u ON p.user_id = u.user_id
     LEFT JOIN user_bans b ON u.user_id = b.user_id 
@@ -47,11 +53,11 @@ $result = $stmt->get_result();
 $posts = [];
 while ($post = $result->fetch_assoc()) {
     // Image URLs
-    $post['image'] = $post['image'] ? 
-        "http://localhost/uploads/posts/" . $post['image'] : null;
-    
-    $post['profile_picture'] = $post['profile_picture'] ? 
-        "http://localhost/uploads/profiles/" . $post['profile_picture'] : 
+    if ($post['image']) {
+        $post['image'] = preg_match('#^https?://#i', $post['image']) ? $post['image'] : "http://localhost/uploads/posts/" . $post['image'];
+    } else {
+        $post['image'] = null;
+    }
         "http://localhost/assets/default.png";
     
     $post['created_at'] = date('M d, Y H:i', strtotime($post['created_at']));

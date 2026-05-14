@@ -36,7 +36,7 @@ if (strlen($content) > 1000) {
 }
 
 // Verify ownership
-$stmt = $conn->prepare("SELECT image FROM posts WHERE id = ? AND user_id = ?");
+$stmt = $conn->prepare("SELECT file_url FROM posts WHERE post_id = ? AND user_id = ?");
 $stmt->bind_param("is", $post_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -47,7 +47,7 @@ if ($result->num_rows === 0) {
     exit();
 }
 
-$old_image = $result->fetch_assoc()['image'];
+$old_image = $result->fetch_assoc()['file_url'];
 
 // Handle new image
 if (!empty($_FILES['image']['name'])) {
@@ -65,12 +65,12 @@ $params = [$content];
 $types = "s";
 
 if ($new_image) {
-    $sql .= ", image = ?";
+    $sql .= ", file_url = ?";
     $params[] = $new_image;
     $types .= "s";
 }
 
-$sql .= " WHERE id = ?";
+$sql .= " WHERE post_id = ?";
 $params[] = $post_id;
 $types .= "i";
 

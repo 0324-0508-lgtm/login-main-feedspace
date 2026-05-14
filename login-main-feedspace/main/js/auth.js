@@ -248,15 +248,24 @@ async function verifyOTP(data) {
   console.log('verifyOTP called with data:', data);
   const result = await postAuth('verify-otp.php', data);
   console.log('verifyOTP result:', result);
- console.log("SENT TO SERVER:", data);
+  console.log('SENT TO SERVER:', data);
 
   if (result && result.success) {
+    const savedUserId = data.user_id || result.user_id;
+    if (savedUserId) {
+      window.currentUserId = savedUserId;
+      localStorage.setItem('currentUserId', savedUserId);
+    }
+
     showToast('Login successful!');
     setTimeout(() => {
-    window.location.href = 'main-feed.html';
+      if (data.mode === 'forgot') {
+        window.location.href = 'reset-password.html';
+      } else {
+        window.location.href = 'main-feed.html';
+      }
     }, 1500);
-  } 
-  else {
+  } else {
     const errorMessage = result?.error || (typeof result === 'string' ? result : 'OTP verification failed');
     showToast(errorMessage);
   }
@@ -265,6 +274,7 @@ async function verifyOTP(data) {
 
 // 5. LOGOUT (for dashboard)
 async function handleLogout() {
+  localStorage.removeItem('currentUserId');
   const result = await postAuth('logout.php', {});
   showToast('Logged out successfully');
   window.location.href = 'index.html';

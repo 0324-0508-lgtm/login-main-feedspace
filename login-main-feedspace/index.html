@@ -287,6 +287,10 @@
           result = contentType.includes('application/json') ? JSON.parse(rawBody) : { error: rawBody };
 
           if (result && result.success) {
+            if (__loginOtp.userId) {
+              window.currentUserId = __loginOtp.userId;
+              localStorage.setItem('currentUserId', __loginOtp.userId);
+            }
             showToast('Verified successfully');
             if (verifyBtn) {
               verifyBtn.disabled = true;
@@ -316,8 +320,8 @@
         if (!__loginOtp.userId) {
           showToast('Send OTP first');
           return;
-        }
-        window.location.href = 'main/html/main-feed.html';
+        }        window.currentUserId = __loginOtp.userId;
+        localStorage.setItem('currentUserId', __loginOtp.userId);        window.location.href = 'main/html/main-feed.html';
       };
 
       window.addEventListener('DOMContentLoaded', function () {

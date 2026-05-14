@@ -12,44 +12,45 @@
 /* ── Feed layout with right panel ── */
 .feed-layout {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1240px;
   align-items: flex-start;
 }
 .feed-center {
   flex: 1;
   min-width: 0;
+  max-width: 720px;
 }
 
 /* ── Right Panel ── */
 .right-panel {
-  width: 260px;
+  width: 320px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 .right-panel-card {
   background: var(--color-white);
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  border-radius: 22px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-sm);
 }
 .rp-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .rp-title {
   font-weight: 800;
-  font-size: 0.92rem;
+  font-size: 1rem;
   color: var(--color-text);
 }
 .rp-view-all {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--color-mid);
   text-decoration: none;
@@ -60,9 +61,9 @@
 /* Announcement mini items */
 .ann-mini-item {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
-  padding: 7px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background 0.14s;
@@ -70,32 +71,33 @@
 .ann-mini-item:last-child { border-bottom: none; padding-bottom: 0; }
 .ann-mini-item:first-child { padding-top: 0; }
 .ann-dot {
-  width: 9px; height: 9px; border-radius: 50%;
+  width: 10px; height: 10px; border-radius: 50%;
   flex-shrink: 0; margin-top: 5px;
 }
 .ann-dot.red    { background: #e05263; }
 .ann-dot.yellow { background: #f5a623; }
 .ann-dot.green  { background: #4caf7d; }
+.ann-dot.blue   { background: #3b82f6; }
 .ann-mini-title {
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--color-text);
-  line-height: 1.3;
-  margin-bottom: 2px;
+  line-height: 1.35;
+  margin-bottom: 4px;
 }
 .ann-mini-desc {
-  font-size: 0.76rem;
+  font-size: 0.79rem;
   color: var(--color-subtext);
-  line-height: 1.4;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .ann-mini-time {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--color-subtext);
-  margin-top: 3px;
+  margin-top: 4px;
   font-weight: 600;
 }
 
@@ -104,7 +106,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background 0.14s;
@@ -114,13 +116,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--color-text);
 }
-.trending-left i { color: var(--color-mid); font-size: 0.8rem; }
+.trending-left i { color: var(--color-mid); font-size: 0.9rem; }
 .trending-count {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--color-subtext);
   font-weight: 600;
 }
@@ -145,7 +147,7 @@
 
   <div class="nav-actions">
     <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
-      <i class="fas fa-bell"></i><span class="badge">3</span>
+      <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
     </button>
     <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
       <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
@@ -154,10 +156,7 @@
 
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Trixie liked your post</div><div class="notif-time">2 minutes ago</div></div></div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">New announcement in Community</div><div class="notif-time">1 hour ago</div></div></div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Someone shared your post</div><div class="notif-time">3 hours ago</div></div></div>
-      <div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Welcome to FeedSpace!</div><div class="notif-time">2 days ago</div></div></div>
+      <div id="notifList"></div>
     </div>
 
     <div class="dropdown" id="settingsDropdown">
@@ -187,7 +186,6 @@
       <a href="main-feed.html" class="active"><i class="fas fa-home"></i><span>Feed</span></a>
       <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
       <a href="communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
-      <a href="archive.html"><i class="fas fa-archive"></i><span>Archive</span></a>
       <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
       <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
     </nav>
@@ -217,96 +215,11 @@
         </div>
 
         <!-- Feed Posts -->
-        <div id="feedPosts">
+        <div id="feedPosts" data-dynamic="true"></div>
 
-          <div class="post-card">
-            <div class="post-header">
-              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" class="post-avatar"/>
-              <div class="post-meta">
-                <div class="post-author">Trixie May Pontiga</div>
-                <div class="post-community">Community Name · <span class="post-time">2 hrs ago</span></div>
-              </div>
-              <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
-              <div class="post-options-menu">
-                <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-                <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-                <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-                <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-                <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
-              </div>
-            </div>
-            <div class="post-body">
-              <p>Hey everyone! Just wanted to share something that made my day 🥰 It's the little things that matter most. Hope you all have a great day ahead!</p>
-            </div>
-            <div class="post-footer">
-              <button class="reaction-btn" onclick="toggleLike(this)"><i class="far fa-heart"></i> <span>12</span></button>
-              <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
-              <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
-            </div>
-            <div class="comment-section" style="display:none;">
-              <div class="comment-input-row">
-                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
-                <div class="comment-input-wrap">
-                  <input type="text" placeholder="Write a comment..."/>
-                  <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
-                </div>
-              </div>
-              <div class="comment-item">
-                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="User"/>
-                <div class="comment-bubble"><div class="comment-author">Trixie May Pontiga</div><div class="comment-text">This is so wholesome! 💙</div></div>
-              </div>
-              <div class="comment-item">
-                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Maya" alt="User"/>
-                <div class="comment-bubble"><div class="comment-author">Maya Santos</div><div class="comment-text">Agreed! Little things matter most 🌸</div></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="post-card">
-            <div class="post-header">
-              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Maya" alt="User" class="post-avatar"/>
-              <div class="post-meta">
-                <div class="post-author">Trixie May Pontiga</div>
-                <div class="post-community">Community Name · <span class="post-time">5 hrs ago</span></div>
-              </div>
-              <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
-              <div class="post-options-menu">
-                <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-                <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-                <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-                <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-                <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
-              </div>
-            </div>
-            <div class="post-body">
-              <p>Had so much fun exploring today! 😍 Here are some shots from the trip~</p>
-              <div class="image-grid grid-3">
-                <div class="img-placeholder" style="background:linear-gradient(135deg,#7AAACE,#9CD5FF)"></div>
-                <div class="img-placeholder" style="background:linear-gradient(135deg,#355872,#7AAACE)"></div>
-                <div class="img-placeholder" style="background:linear-gradient(135deg,#9CD5FF,#F7F8F0)"></div>
-              </div>
-            </div>
-            <div class="post-footer">
-              <button class="reaction-btn liked" onclick="toggleLike(this)"><i class="fas fa-heart"></i> <span>47</span></button>
-              <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
-              <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
-            </div>
-            <div class="comment-section" style="display:none;">
-              <div class="comment-input-row">
-                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
-                <div class="comment-input-wrap">
-                  <input type="text" placeholder="Write a comment..."/>
-                  <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
       </div><!-- /feed-center -->
 
-      <!-- ===== RIGHT PANEL ===== -->
-      <div class="right-panel">
+      
 
         <!-- Announcements widget -->
         <div class="right-panel-card">
@@ -315,32 +228,7 @@
             <a href="announcements.html" class="rp-view-all">View all</a>
           </div>
 
-          <div class="ann-mini-item" onclick="window.location.href='announcements.html'">
-            <div class="ann-dot red"></div>
-            <div>
-              <div class="ann-mini-title">Welcome to FeedSpace Beta!</div>
-              <div class="ann-mini-desc">We're thrilled to have you here. Explore communities and connect!</div>
-              <div class="ann-mini-time">2h ago</div>
-            </div>
-          </div>
-
-          <div class="ann-mini-item" onclick="window.location.href='announcements.html'">
-            <div class="ann-dot yellow"></div>
-            <div>
-              <div class="ann-mini-title">Communities Are Now Live!</div>
-              <div class="ann-mini-desc">Join groups that match your interests and start connecting.</div>
-              <div class="ann-mini-time">5h ago</div>
-            </div>
-          </div>
-
-          <div class="ann-mini-item" onclick="window.location.href='announcements.html'">
-            <div class="ann-dot green"></div>
-            <div>
-              <div class="ann-mini-title">New Cafe Opening</div>
-              <div class="ann-mini-desc">A new student-run cafe opens next Monday in the union building.</div>
-              <div class="ann-mini-time">1d ago</div>
-            </div>
-          </div>
+          <div id="announcementsMiniList"></div>
         </div>
 
       </div><!-- /right-panel -->
@@ -440,6 +328,8 @@
 </div>
 
 <script src="../js/base.js"></script>
+<script src="../js/notifications.js"></script>
+<script src="../js/announcements.js"></script>
 <script src="../js/feed.js"></script>
 <script>
 function openAnnounceModal(btn) {

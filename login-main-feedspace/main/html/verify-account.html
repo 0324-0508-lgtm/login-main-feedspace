@@ -88,6 +88,8 @@
       </div>
     </div>
 
+    <script src="../js/base.js"></script>
+    <script src="../js/auth.js"></script>
     <script>
       const otpInputs = document.querySelectorAll(".otp-input");
 
@@ -105,24 +107,30 @@
         });
       });
 
-      function handleVerify(event) {
+      async function handleVerify(event) {
         event.preventDefault();
         const code = Array.from(otpInputs)
           .map((input) => input.value)
           .join("");
-        if (code.length === 6) {
-          alert("Account verified successfully!");
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get("mode") === "forgot") {
-            window.location.href = "reset-password.html";
-          } else {
-            window.location.href = "main-feed.html";
-          }
+        if (code.length !== 6) {
+          showToast('Please enter the 6-digit verification code.');
+          return;
         }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const user_id = urlParams.get('user_id');
+        const mode = urlParams.get('mode');
+
+        if (!user_id) {
+          showToast('User ID missing. Please sign in again.');
+          return;
+        }
+
+        await verifyOTP({ user_id, otp_code: code, mode });
       }
 
       function handleResend() {
-        alert("Verification code resent!");
+        showToast('Verification code resent!');
       }
     </script>
   </body>

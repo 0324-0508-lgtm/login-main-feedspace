@@ -274,7 +274,7 @@
   </div>
   <div class="nav-actions">
     <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
-      <i class="fas fa-bell"></i><span class="badge">3</span>
+      <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
     </button>
     <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
       <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
@@ -282,10 +282,7 @@
     </div>
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Trixie liked your post</div><div class="notif-time">2 minutes ago</div></div></div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">New announcement in Community</div><div class="notif-time">1 hour ago</div></div></div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Someone shared your post</div><div class="notif-time">3 hours ago</div></div></div>
-      <div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Welcome to FeedSpace!</div><div class="notif-time">2 days ago</div></div></div>
+      <div id="notifList"></div>
     </div>
     <div class="dropdown" id="settingsDropdown">
       <div class="dropdown-header">Settings</div>
@@ -308,7 +305,6 @@
       <a href="main-feed.html"><i class="fas fa-home"></i><span>Feed</span></a>
       <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
       <a href="communities.html" class="active"><i class="fas fa-users"></i><span>Communities</span></a>
-      <a href="archive.html"><i class="fas fa-archive"></i><span>Archive</span></a>
       <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
       <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
     </nav>

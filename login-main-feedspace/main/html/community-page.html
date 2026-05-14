@@ -82,10 +82,10 @@
   <div class="nav-logo"><a href="main-feed.html"><img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/><span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span></a></div>
   <div class="nav-search"><div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search FeedSpace..."/></div></div>
   <div class="nav-actions">
-    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')"><i class="fas fa-bell"></i><span class="badge">3</span></button>
+    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')"><i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span></button>
     <button class="nav-icon-btn" onclick="toggleDropdown('settingsDropdown')"><i class="fas fa-cog"></i></button>
     <div class="profile-chip" onclick="window.location.href='profile.html'"><img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="Profile"/></div>
-    <div class="dropdown" id="notifDropdown"><div class="dropdown-header">Notifications</div><div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">New post in Photography Lovers</div><div class="notif-time">10 minutes ago</div></div></div></div>
+    <div class="dropdown" id="notifDropdown"><div class="dropdown-header">Notifications</div><div id="notifList"></div></div>
     <div class="dropdown-item" onclick="window.location.href='../../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
   </div>
 </header>
@@ -100,7 +100,6 @@
       <a href="announcements.html" data-tooltip="Announcements"><i class="fas fa-bullhorn"></i></a>
       <a href="liked.html" data-tooltip="Liked Pages"><i class="fas fa-heart"></i></a>
       <a href="communities.html" class="active" data-tooltip="Communities"><i class="fas fa-th"></i></a>
-      <a href="archive.html" data-tooltip="Archive"><i class="fas fa-archive"></i></a>
       <a href="help.html" data-tooltip="Help"><i class="fas fa-question-circle"></i></a>
     </nav>
     <a href="about.html" class="sidebar-about" style="text-decoration:none;"><i class="fas fa-info-circle"></i></a>
@@ -258,6 +257,7 @@
 </div>
 
 <script src="../js/base.js"></script>
+<script src="../js/notifications.js"></script>
 <script>
 function openCommPostModal() { document.getElementById('commPostModal').classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }

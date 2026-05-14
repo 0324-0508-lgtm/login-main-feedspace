@@ -24,11 +24,14 @@ if (empty($profile_user_id)) {
 // Get profile owner's posts
 $stmt = $conn->prepare("
     SELECT 
-        p.id, p.content, p.image, p.created_at,
-        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as like_count,
-        (SELECT COUNT(*) FROM shares WHERE post_id = p.id) as share_count,
-        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
-        EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = ?) as user_liked
+        p.post_id AS id,
+        p.content,
+        p.file_url AS image,
+        p.created_at,
+        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.post_id) as like_count,
+        (SELECT COUNT(*) FROM shares WHERE post_id = p.post_id) as share_count,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id) as comment_count,
+        EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) as user_liked
     FROM posts p
     WHERE p.user_id = ?
     ORDER BY p.created_at DESC
@@ -40,8 +43,11 @@ $result = $stmt->get_result();
 
 $posts = [];
 while ($post = $result->fetch_assoc()) {
-    $post['image'] = $post['image'] ? 
-        "http://localhost/uploads/posts/" . $post['image'] : null;
+    if ($post['image']) {
+        $post['image'] = preg_match('#^https?://#i', $post['image']) ? $post['image'] : "http://localhost/uploads/posts/" . $post['image'];
+    } else {
+        $post['image'] = null;
+    }
     $post['created_at'] = date('M d, Y', strtotime($post['created_at']));
     $posts[] = $post;
 }

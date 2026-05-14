@@ -53,15 +53,20 @@ if (!empty($_FILES['image']['name'])) {
     }
 }
 
-// Insert post
-$stmt = $conn->prepare("INSERT INTO posts (user_id, content, image, created_at) VALUES (?, ?, ?, NOW())");
-$stmt->bind_param("sss", $user_id, $content, $image);
+// Insert post using the current posts schema
+$file_name = $image ? $image : null;
+$file_type = $image ? 'image' : 'none';
+
+$stmt = $conn->prepare(
+    "INSERT INTO posts (user_id, content, file_url, file_type, visibility, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'public', 'pending', NOW(), NOW())"
+);
+$stmt->bind_param("ssss", $user_id, $content, $file_name, $file_type);
 
 if ($stmt->execute()) {
     echo json_encode([
         'success' => true,
         'post_id' => $conn->insert_id,
-        'image' => $image ? "http://localhost/uploads/posts/$image" : null
+        'image' => $file_name ? "http://localhost/uploads/posts/$file_name" : null
     ]);
 } else {
     http_response_code(500);

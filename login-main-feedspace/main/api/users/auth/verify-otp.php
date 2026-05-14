@@ -46,4 +46,4 @@ $del->execute();
 /* 4. LOGIN USER */
 $_SESSION['user_id'] = $user_id;
 
-echo json_encode(['success' => true]);
+echo json_encode(['success' => true, 'user_id' => $user_id]);

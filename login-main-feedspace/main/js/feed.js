@@ -39,12 +39,40 @@ function archivePost(el) {
 }
 
 function toggleLike(btn) {
+  const postId = btn?.dataset?.postId;
+  if (!postId) {
+    // If UI is using mock/static cards without data-post-id, ignore.
+    // Real feed cards must include data-post-id for backend toggling.
+    return;
+  }
+
+
   const isLiked = btn.classList.contains('liked');
   const span = btn.querySelector('span');
-  let count = parseInt(span.textContent) || 0;
-  if (isLiked) { btn.classList.remove('liked'); btn.querySelector('i').className = 'far fa-heart'; span.textContent = count - 1; }
-  else { btn.classList.add('liked'); btn.querySelector('i').className = 'fas fa-heart'; span.textContent = count + 1; }
+  if (span) span.textContent = span.textContent; // no-op to keep UI stable
+
+  fetch('../api/users/interactions/toggle-post-like.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ post_id: parseInt(postId, 10) })
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.success) throw new Error(res?.error || 'Toggle failed');
+
+      const nextLiked = !!res.is_liked;
+      btn.classList.toggle('liked', nextLiked);
+      const icon = btn.querySelector('i');
+      if (icon) icon.className = nextLiked ? 'fas fa-heart' : 'far fa-heart';
+      if (span) span.textContent = String(res.likesCount ?? 0);
+
+      // Update button label if needed (future-proof)
+    })
+    .catch(() => {
+      showToast(isLiked ? 'Failed to unlike' : 'Failed to like');
+    });
 }
+
 
 function toggleComments(btn) {
   const card = btn.closest('.post-card');
@@ -83,14 +111,27 @@ function submitPost() {
   const ta = document.getElementById('modalPostText');
   const text = ta ? ta.value.trim() : '';
   if (!text) { showToast('Write something first!'); return; }
-  const feedPosts = document.getElementById('feedPosts');
-  const card = createPostCard(text);
-  card.style.opacity = '0'; card.style.transform = 'translateY(14px)';
-  feedPosts.insertBefore(card, feedPosts.firstChild);
-  requestAnimationFrame(() => { card.style.transition = 'opacity 0.32s, transform 0.32s'; card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
-  closeModal('postModal');
-  showToast('Post shared! 🎉');
+
+  // TODO: image upload not wired in UI yet; creating post as text-only
+  fetch('../api/users/posts/create-post.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'content=' + encodeURIComponent(text)
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.success) throw new Error(res?.error || 'Create failed');
+      closeModal('postModal');
+      showToast('Post shared! 🎉');
+      if (typeof loadFeedPosts === 'function') loadFeedPosts(1, true);
+    })
+    .catch(() => {
+      showToast('Failed to create post');
+    });
 }
+
+
+
 
 function openReportModal(el) {
   closeOptions(el);
@@ -117,38 +158,57 @@ function submitShare() {
   showToast('Post shared! 🔁');
 }
 
-function createPostCard(text) {
+function createPostCard(post) {
+
   const card = document.createElement('div');
+
   card.className = 'post-card';
+
+  const avatar = post.profile_picture || 'http://localhost/assets/default.png';
+  const author = post.full_name || 'Unknown';
+
   card.innerHTML = `
     <div class="post-header">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" class="post-avatar"/>
-      <div class="post-meta"><div class="post-author">Kim Ballebar</div><div class="post-community">Community Name · <span class="post-time">Just now</span></div></div>
+      <img src="${escapeAttr(avatar)}" alt="User" class="post-avatar"/>
+      <div class="post-meta">
+        <div class="post-author">${escapeHtml(author)}</div>
+        <div class="post-community">Community · <span class="post-time">${escapeHtml(post.created_at || '')}</span></div>
+      </div>
       <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
       <div class="post-options-menu">
         <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
         <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
         <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
         <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
+        <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
       </div>
     </div>
-    <div class="post-body"><p>${escapeHtml(text)}</p></div>
+    <div class="post-body">${post.image ? `<p>${escapeHtml(post.content || '')}</p><div class="image-grid grid-1"><img src="${escapeAttr(post.image)}" alt="Post image" class="post-image"/></div>` : `<p>${escapeHtml(post.content || '')}</p>`}</div>
     <div class="post-footer">
-      <button class="reaction-btn" onclick="toggleLike(this)"><i class="far fa-heart"></i> <span>0</span></button>
-      <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
+      <button class="reaction-btn ${post.user_liked ? 'liked' : ''}" data-post-id="${post.id}" onclick="toggleLike(this)">
+        <i class="${post.user_liked ? 'fas' : 'far'} fa-heart"></i>
+        <span>${Number(post.like_count || 0)}</span>
+      </button>
+      <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>${Number(post.comment_count || 0) ? '' : ''}Comment</span></button>
       <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
     </div>
     <div class="comment-section" style="display:none;">
       <div class="comment-input-row">
-        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
+        <img src="http://localhost/assets/default.png" alt="User"/>
         <div class="comment-input-wrap">
           <input type="text" placeholder="Write a comment..."/>
           <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
         </div>
       </div>
     </div>`;
+
   return card;
 }
+
+function escapeAttr(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+}
+
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -156,8 +216,41 @@ function escapeHtml(str) {
 
 // Close modals on overlay click
 document.addEventListener('click', function(e) {
+
   ['postModal','reportModal','shareModal'].forEach(id => {
+
     const el = document.getElementById(id);
     if (el && e.target === el) el.classList.remove('show');
   });
 });
+
+// ---- Dynamic loading (feed) ----
+function loadFeedPosts(page = 1, replace = true) {
+  const feedPosts = document.getElementById('feedPosts');
+  if (!feedPosts) return;
+
+  fetch('../api/users/posts/get-posts.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'page=' + encodeURIComponent(page)
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.success) throw new Error(res?.error || 'Failed to load feed');
+
+      if (replace) feedPosts.innerHTML = '';
+
+      (res.posts || []).forEach(p => {
+        feedPosts.appendChild(createPostCard(p));
+      });
+    })
+    .catch(() => {
+      // silent fail (UI still has placeholder)
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // If mock cards are present, replace them with dynamic content.
+  loadFeedPosts(1, true);
+});
+

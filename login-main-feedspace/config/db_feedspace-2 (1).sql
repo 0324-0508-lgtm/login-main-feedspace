@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 08, 2026 at 05:16 AM
+-- Generation Time: May 12, 2026 at 06:56 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -101,6 +101,16 @@ CREATE TABLE `backups` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `backups`
+--
+
+INSERT INTO `backups` (`backup_id`, `file_name`, `file_path`, `file_size`, `backup_type`, `status`, `created_at`) VALUES
+(14, 'feedspace_manual_20260510_182919.sql.gz', '', 5874, 'manual', 'success', '2026-05-11 00:29:20'),
+(15, 'feedspace_auto_20260511_144333.sql.gz', '', 5796, 'auto', 'success', '2026-05-11 20:43:34'),
+(16, 'feedspace_manual_20260511_153904.sql.gz', '', 5827, 'manual', 'success', '2026-05-11 21:39:04'),
+(17, 'feedspace_manual_20260512_143501.sql.gz', '', 5527, 'manual', 'success', '2026-05-12 20:35:01');
+
 -- --------------------------------------------------------
 
 --
@@ -127,7 +137,7 @@ CREATE TABLE `comments` (
 INSERT INTO `comments` (`comment_id`, `post_id`, `user_id`, `content`, `moderation_status`, `moderation_reason`, `toxicity_score`, `moderated_by`, `moderated_at`, `created_at`) VALUES
 (16, 14, '0324-0506', 'Nice laptop! Is it still available?', 'flagged', NULL, 0.02, 'Admin', '2026-05-07 16:58:22', '2026-05-07 16:45:14'),
 (17, 15, '0324-0501', 'This crypto course looks suspicious.', 'flagged', NULL, 0.88, 'Admin', '2026-05-07 16:58:23', '2026-05-07 16:45:14'),
-(19, 17, '0324-0509', 'Cool Arduino project!', 'approved', NULL, 0.05, 'AI System', '2026-05-07 16:45:14', '2026-05-07 16:45:14'),
+(19, 17, '0324-0509', 'Cool Arduino project!', 'flagged', NULL, 0.05, 'Admin', '2026-05-09 10:14:15', '2026-05-07 16:45:14'),
 (20, 18, '0324-0502', 'Thanks for the SQL tutorial!', 'approved', NULL, 0.03, 'AI System', '2026-05-07 16:45:14', '2026-05-07 16:45:14');
 
 -- --------------------------------------------------------
@@ -153,7 +163,6 @@ CREATE TABLE `communities` (
 --
 
 INSERT INTO `communities` (`community_id`, `user_id`, `community_name`, `description`, `created_at`, `member_count`, `status`, `updated_at`, `community_picture`) VALUES
-(1, 1, 'General Discussion', 'Everything and anything', '2026-05-06 14:55:25', 1250, 'active', '2026-05-08 10:12:48', NULL),
 (2, 2, 'Technology', 'Tech news and discussions', '2026-05-06 14:55:25', 890, 'active', '2026-05-08 10:12:48', NULL),
 (3, 3, 'Design', 'UI/UX, graphics, and design', '2026-05-06 14:55:25', 450, 'active', '2026-05-08 10:12:48', NULL),
 (4, 4, 'Gaming', 'Games, esports, and more', '2026-05-06 14:55:25', 320, 'active', '2026-05-08 10:12:48', NULL);
@@ -185,20 +194,6 @@ CREATE TABLE `community_members` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `customers`
---
-
-CREATE TABLE `customers` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `name` varchar(120) NOT NULL,
-  `contact` varchar(60) NOT NULL,
-  `address` varchar(255) DEFAULT '',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `moderation_logs`
 --
 
@@ -217,18 +212,18 @@ CREATE TABLE `moderation_logs` (
 --
 
 CREATE TABLE `notifications` (
-  `notif_id` int(11) NOT NULL,
-  `user_id` varchar(9) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `type` enum('like','comment','follow') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `post_id` int(11) DEFAULT NULL,
-  `comment_id` int(11) DEFAULT NULL,
-  `community_id` int(11) DEFAULT NULL,
-  `actor_id` varchar(9) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `actor_username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `id` int(11) NOT NULL,
+  `sender_admin_id` int(11) DEFAULT NULL,
+  `sender_user_id` varchar(9) DEFAULT NULL,
+  `receiver_admin_id` int(11) DEFAULT NULL,
+  `receiver_user_id` varchar(9) DEFAULT NULL,
+  `receiver_type` enum('admin','user') NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('info','success','warning','error') DEFAULT 'info',
   `is_read` tinyint(1) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -390,12 +385,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `first_name`, `last_name`, `email`, `password_hash`, `profile_picture`, `bio`, `role`, `created_at`, `updated_at`, `last_activity`, `status`, `college`) VALUES
-('0324-0501', 'Juan', 'Dela Cruz', 'juan@example.com', 'hashed123', 'default.png', 'Student profile', 'Student', '2026-05-03 20:22:45', '2026-05-08 02:20:25', '2026-05-03 20:22:45', 'banned', NULL),
+('0324-0501', 'Juan', 'Dela Cruz', 'juan@example.com', 'hashed123', 'default.png', 'Student profile', 'Student', '2026-05-03 20:22:45', '2026-05-11 19:35:31', '2026-05-03 20:22:45', 'active', NULL),
 ('0324-0502', 'Maria', 'Santos', 'maria@example.com', 'hashed123', 'default.png', 'Inactive account', 'Student', '2026-05-03 20:22:45', '2026-05-05 16:15:04', '2026-05-03 20:22:45', 'active', NULL),
 ('0324-0504', 'Anna', 'Lopez', 'anna@example.com', 'hashed123', 'default.png', 'Staff member', 'Staff', '2026-05-03 20:22:45', '2026-05-05 16:09:46', '2026-05-03 20:22:45', 'active', NULL),
 ('0324-0505', 'Mark', 'Rivera', 'mark@example.com', 'hashed123', 'default.png', 'Org account', '', '2026-05-03 20:22:45', '2026-05-05 15:54:11', '2026-05-03 20:22:45', 'banned', NULL),
 ('0324-0506', 'Lisa', 'Garcia', 'lisa@example.com', 'hashed123', 'default.png', 'Reported user', 'Student', '2026-05-03 20:22:45', '2026-05-05 15:46:26', '2026-05-03 20:22:45', 'banned', NULL),
-('0324-0509', 'Admin', 'Superuser', 'admin@feedspace.com', 'admin_hash_123', 'admin_avatar.png', 'System Administrator with full access', 'Admin', '2026-05-05 14:35:03', '2026-05-05 14:35:03', '2026-05-05 14:35:03', 'active', NULL);
+('0324-0508', 'Trixie', 'Pontiga', '0324-0508@lspu.edu.ph', '$2y$10$VfvfCN7l4I35fpKdS7jzPukF.6VCkqVqntUca9hYcXKC8HoFO9s7y', 'default.png', '', 'Student', '2026-05-11 18:09:45', '2026-05-12 00:09:45', '2026-05-12 00:09:45', 'active', ''),
+('0324-0509', 'Admin', 'Superuser', 'admin@feedspace.com', 'admin_hash_123', 'admin_avatar.png', 'System Administrator with full access', 'Admin', '2026-05-05 14:35:03', '2026-05-05 14:35:03', '2026-05-05 14:35:03', 'active', NULL),
+('0394-8736', 'Trisa', 'Mongi', 'pontigatrishalyn@gmail.com', '$2y$10$DWwvV6xNTILdtlMyKnssB.kYhGES5BNPQxEUmM2cQe0qBcpsstYCW', 'default.png', '', 'Student', '2026-05-10 17:48:05', '2026-05-10 23:48:05', '2026-05-10 23:48:05', 'active', '');
 
 -- --------------------------------------------------------
 
@@ -518,18 +515,18 @@ ALTER TABLE `moderation_logs`
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`notif_id`),
-  ADD KEY `idx_user` (`user_id`),
-  ADD KEY `idx_post` (`post_id`),
-  ADD KEY `fk_notifications_actor` (`actor_id`),
-  ADD KEY `fk_notifications_comment` (`comment_id`),
-  ADD KEY `fk_notifications_community` (`community_id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `sender_admin_id` (`sender_admin_id`),
+  ADD KEY `receiver_admin_id` (`receiver_admin_id`),
+  ADD KEY `sender_user_id` (`sender_user_id`),
+  ADD KEY `receiver_user_id` (`receiver_user_id`);
 
 --
 -- Indexes for table `otp`
 --
 ALTER TABLE `otp`
   ADD PRIMARY KEY (`otp_id`),
+  ADD UNIQUE KEY `unique_user_type` (`user_id`,`type`),
   ADD KEY `otp_ibfk_1` (`user_id`);
 
 --
@@ -638,7 +635,7 @@ ALTER TABLE `announcement_requests`
 -- AUTO_INCREMENT for table `backups`
 --
 ALTER TABLE `backups`
-  MODIFY `backup_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `backup_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `comments`
@@ -668,13 +665,13 @@ ALTER TABLE `moderation_logs`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `notif_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `otp`
 --
 ALTER TABLE `otp`
-  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `posts`
@@ -761,11 +758,10 @@ ALTER TABLE `community_likes`
 -- Constraints for table `notifications`
 --
 ALTER TABLE `notifications`
-  ADD CONSTRAINT `fk_notifications_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`user_id`),
-  ADD CONSTRAINT `fk_notifications_comment` FOREIGN KEY (`comment_id`) REFERENCES `comments` (`comment_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_notifications_community` FOREIGN KEY (`community_id`) REFERENCES `communities` (`community_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_notifications_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`post_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`sender_admin_id`) REFERENCES `admin_accounts` (`admin_id`),
+  ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`receiver_admin_id`) REFERENCES `admin_accounts` (`admin_id`),
+  ADD CONSTRAINT `notifications_ibfk_3` FOREIGN KEY (`sender_user_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `notifications_ibfk_4` FOREIGN KEY (`receiver_user_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `otp`

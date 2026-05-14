@@ -663,6 +663,7 @@
     flex: 1;
   }
 }
+ 
 
 @media (max-width: 640px) {
   .rightside {

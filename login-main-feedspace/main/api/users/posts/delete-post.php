@@ -27,7 +27,7 @@ if ($post_id <= 0) {
 }
 
 // Verify ownership
-$stmt = $conn->prepare("SELECT image FROM posts WHERE id = ? AND user_id = ?");
+$stmt = $conn->prepare("SELECT file_url FROM posts WHERE post_id = ? AND user_id = ?");
 $stmt->bind_param("is", $post_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -39,7 +39,7 @@ if ($result->num_rows === 0) {
 }
 
 $post = $result->fetch_assoc();
-$image_path = $post['image'] ? '../../uploads/posts/' . $post['image'] : null;
+$image_path = $post['file_url'] ? '../../uploads/posts/' . basename($post['file_url']) : null;
 
 // Transaction for safety
 $conn->begin_transaction();
@@ -51,7 +51,7 @@ try {
     $conn->prepare("DELETE FROM comments WHERE post_id = ?")->execute([$post_id]);
     
     // Delete post
-    $conn->prepare("DELETE FROM posts WHERE id = ?")->execute([$post_id]);
+    $conn->prepare("DELETE FROM posts WHERE post_id = ?")->execute([$post_id]);
     
     // Delete image file
     if ($image_path && file_exists($image_path)) {
