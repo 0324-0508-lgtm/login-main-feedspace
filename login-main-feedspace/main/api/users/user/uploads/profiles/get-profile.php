@@ -1,37 +1,55 @@
 <?php
-// API endpoint to get user profile and their posts
+// ============================================================
+//  get-profile.php
+//  Returns profile data + posts for a given user.
+//
+//  Auth: Accepts user_id via POST (stored in localStorage by
+//        the frontend after OTP login). No PHP session required.
+//
+//  POST params:
+//    user_id        – the currently logged-in user (required)
+//    target_user_id – whose profile to view (optional; defaults to user_id)
+//    page           – pagination page (optional; default 1)
+// ============================================================
+
 session_start();
-include '../../../config/db.php';
+
+// ── Path fix: 6 levels up to project root ─────────────────────
+// File lives at: main/api/users/user/uploads/profiles/
+// Root lives at: ../../../../../.. relative to this file
+require_once __DIR__ . '/../../../../../../config/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
-// Only allow POST requests
-if (empty($_SESSION['user_id'])) {
+
+// ── Auth: accept session OR POST user_id (localStorage flow) ──
+$user_id = $_SESSION['user_id'] ?? trim($_POST['user_id'] ?? '');
+
+if (empty($user_id)) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit();
 }
-// Get user_id from session and optional target user_id from POST data
-$user_id = $_SESSION['user_id'];
-$target_user_id = $_POST['user_id'] ?? $user_id;
-$page = max(1, intval($_POST['page'] ?? 1));
-$limit = 10;
-$offset = ($page - 1) * $limit;
 
-// 1. Get user profile
+$target_user_id = trim($_POST['target_user_id'] ?? $user_id);
+$page           = max(1, intval($_POST['page'] ?? 1));
+$limit          = 10;
+$offset         = ($page - 1) * $limit;
+
+// ── 1. Fetch profile ──────────────────────────────────────────
 $stmt = $conn->prepare("
-    SELECT 
+    SELECT
         user_id, first_name, last_name, email, bio, role, college,
         profile_picture, cover_photo, created_at,
-        (SELECT COUNT(*) FROM posts WHERE user_id = ?) as post_count,
-        (SELECT COUNT(*) FROM shares WHERE user_id = ?) as share_count,
-        (SELECT COUNT(*) FROM communities WHERE user_id = ?) as community_count
-    FROM users 
+        (SELECT COUNT(*) FROM posts   WHERE user_id = ? AND is_deleted = 0) AS post_count,
+        (SELECT COUNT(*) FROM shares  WHERE user_id = ?)                    AS share_count,
+        (SELECT COUNT(*) FROM community_members WHERE user_id = ?)          AS community_count
+    FROM users
     WHERE user_id = ?
 ");
-$stmt->bind_param("ssss", $target_user_id, $target_user_id, $target_user_id, $target_user_id);
+$stmt->bind_param('ssss', $target_user_id, $target_user_id, $target_user_id, $target_user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-// If user not found, return error
+
 if ($result->num_rows === 0) {
     http_response_code(404);
     echo json_encode(['error' => 'User not found']);
@@ -40,68 +58,79 @@ if ($result->num_rows === 0) {
 
 $profile = $result->fetch_assoc();
 
-// Full image URLs
-$profile['profile_picture'] = $profile['profile_picture'] ? 
-    "http://localhost/uploads/profiles/" . $profile['profile_picture'] : 
-    "http://localhost/assets/default.png";
-$profile['cover_photo'] = $profile['cover_photo'] ? 
-    "http://localhost/uploads/covers/" . $profile['cover_photo'] : 
-    "http://localhost/assets/cover-default.jpg";
-$profile['full_name'] = trim($profile['first_name'] . ' ' . $profile['last_name']);
-$profile['created_at'] = date('M d, Y', strtotime($profile['created_at']));
+// ── Build full image URLs ─────────────────────────────────────
+// Use a relative URL so it works regardless of domain/port.
+$base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+// uploads folder is at: main/api/users/user/uploads/
+// From web root the path is: /main/api/users/user/uploads/
 
-//Get user's POSTS (original posts)
+$profile['profile_picture_url'] = $profile['profile_picture'] && $profile['profile_picture'] !== 'default.png'
+    ? '/main/api/users/user/uploads/profiles/' . $profile['profile_picture']
+    : null;   // frontend falls back to default avatar
+
+$profile['cover_photo_url'] = $profile['cover_photo']
+    ? '/main/api/users/user/uploads/covers/' . $profile['cover_photo']
+    : null;
+
+$profile['full_name']   = trim($profile['first_name'] . ' ' . $profile['last_name']);
+$profile['member_since'] = date('M Y', strtotime($profile['created_at']));
+$profile['is_own_profile'] = ($user_id === $target_user_id);
+
+// ── 2. Fetch user's posts ─────────────────────────────────────
 $posts_stmt = $conn->prepare("
-    SELECT p.id, p.content, p.image, p.created_at,
-        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes,
-        (SELECT COUNT(*) FROM shares WHERE post_id = p.id) as shares
-    FROM posts p 
-    WHERE p.user_id = ? 
-    ORDER BY p.created_at DESC 
+    SELECT
+        p.post_id AS id,
+        p.content,
+        p.file_url  AS image,
+        p.file_type,
+        p.created_at,
+        (SELECT COUNT(*) FROM post_likes  WHERE post_id = p.post_id) AS like_count,
+        (SELECT COUNT(*) FROM shares      WHERE post_id = p.post_id) AS share_count,
+        (SELECT COUNT(*) FROM comments    WHERE post_id = p.post_id) AS comment_count,
+        EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.post_id AND user_id = ?) AS user_liked
+    FROM posts p
+    WHERE p.user_id = ?
+      AND p.is_deleted = 0
+      AND p.visibility = 'public'
+    ORDER BY p.created_at DESC
     LIMIT ? OFFSET ?
 ");
-$posts_stmt->bind_param("sii", $target_user_id, $limit, $offset);
+$posts_stmt->bind_param('ssii', $user_id, $target_user_id, $limit, $offset);
 $posts_stmt->execute();
 $posts_result = $posts_stmt->get_result();
+
 $posts = [];
 while ($post = $posts_result->fetch_assoc()) {
-    $post['image'] = $post['image'] ? "http://localhost/uploads/posts/" . $post['image'] : null;
-    $post['created_at'] = date('M d', strtotime($post['created_at']));
+    // Only set image URL if the file_url is a local filename (not already a full URL)
+    if ($post['image']) {
+        $post['image'] = preg_match('#^https?://#i', $post['image'])
+            ? $post['image']
+            : '/main/api/users/user/uploads/posts/' . $post['image'];
+    }
+    $post['created_at']  = date('M d, Y', strtotime($post['created_at']));
+    $post['user_liked']  = (bool)$post['user_liked'];
     $posts[] = $post;
 }
 
-// Get user's SHARED POSTS
-$shares_stmt = $conn->prepare("
-    SELECT s.id as share_id, s.created_at as shared_at,
-        p.id as post_id, p.content, p.image, p.user_id as original_user,
-        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes,
-        (SELECT COUNT(*) FROM shares WHERE post_id = p.id) as shares
-    FROM shares s 
-    JOIN posts p ON s.post_id = p.id
-    WHERE s.user_id = ? 
-    ORDER BY s.created_at DESC 
-    LIMIT ? OFFSET ?
+// ── 3. Total post count for pagination ───────────────────────
+$count_stmt = $conn->prepare("
+    SELECT COUNT(*) AS total
+    FROM posts
+    WHERE user_id = ? AND is_deleted = 0 AND visibility = 'public'
 ");
-$shares_stmt->bind_param("sii", $target_user_id, $limit, $offset);
-$shares_stmt->execute();
-$shares_result = $shares_stmt->get_result();
-$shared_posts = [];
-while ($share = $shares_result->fetch_assoc()) {
-    $share['image'] = $share['image'] ? "http://localhost/uploads/posts/" . $share['image'] : null;
-    $share['created_at'] = date('M d', strtotime($share['shared_at']));
-    $shared_posts[] = $share;
-}
+$count_stmt->bind_param('s', $target_user_id);
+$count_stmt->execute();
+$total = (int)$count_stmt->get_result()->fetch_assoc()['total'];
 
+// ── Response ──────────────────────────────────────────────────
 echo json_encode([
     'success' => true,
     'profile' => $profile,
-    'posts' => $posts,
-    'shared_posts' => $shared_posts,
+    'posts'   => $posts,
     'pagination' => [
-        'page' => $page,
+        'page'  => $page,
         'limit' => $limit,
-        'post_count' => $profile['post_count'],
-        'share_count' => $profile['share_count']
-    ]
+        'total' => $total,
+        'pages' => (int)ceil($total / $limit),
+    ],
 ]);
-?>

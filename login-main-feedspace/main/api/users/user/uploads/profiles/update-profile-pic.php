@@ -1,39 +1,45 @@
 <?php
-// Update user cover photo
+// ============================================================
+//  update-profile-pic.php — Update profile picture only
+//
+//  Auth: session OR POST user_id (localStorage flow)
+//  FILES: profile_picture (required)
+// ============================================================
 session_start();
-include '../../../config/db.php';
+
+// FIXED: correct path — 6 levels up from profiles/ to project root
+require_once __DIR__ . '/../../../../../../config/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
+// Auth: accept session OR POST user_id
+$user_id = $_SESSION['user_id'] ?? trim($_POST['user_id'] ?? '');
+
+if (empty($user_id)) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit();
 }
 
-// Handle profile picture upload
 if (!isset($_FILES['profile_picture']) || $_FILES['profile_picture']['error'] !== UPLOAD_ERR_OK) {
     http_response_code(400);
     echo json_encode(['error' => 'No profile picture uploaded']);
     exit();
 }
 
-$file = $_FILES['profile_picture'];
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-$max_size = 2 * 1024 * 1024; // 2MB
+$file          = $_FILES['profile_picture'];
+$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$max_size      = 2 * 1024 * 1024; // 2 MB
 
-// Validate file
 if (!in_array($file['type'], $allowed_types)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Only JPG, PNG, GIF allowed']);
+    echo json_encode(['error' => 'Only JPG, PNG, GIF, WEBP allowed']);
     exit();
 }
 
@@ -43,31 +49,27 @@ if ($file['size'] > $max_size) {
     exit();
 }
 
-// Create uploads directory
-$upload_dir = '../../uploads/profiles/';
+// FIXED: upload dir relative to this file's __DIR__
+$upload_dir = __DIR__ . '/../profiles/';
 if (!file_exists($upload_dir)) {
-    mkdir($upload_dir, 0777, true);
+    mkdir($upload_dir, 0755, true);
 }
 
-// Generate secure filename
-$extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-$filename = $user_id . '_' . time() . '.' . $extension;
-$filepath = $upload_dir . $filename;
+$extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+$filename  = $user_id . '_' . time() . '.' . $extension;
+$filepath  = $upload_dir . $filename;
 
-// Move file
 if (move_uploaded_file($file['tmp_name'], $filepath)) {
-    // Update database
-    $stmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE user_id = ?");
-    $stmt->bind_param("ss", $filename, $user_id);
-    
+    $stmt = $conn->prepare('UPDATE users SET profile_picture = ? WHERE user_id = ?');
+    $stmt->bind_param('ss', $filename, $user_id);
+
     if ($stmt->execute()) {
         echo json_encode([
-            'success' => true,
-            'message' => 'Profile picture updated!',
-            'profile_picture' => "http://localhost/uploads/profiles/$filename"
+            'success'         => true,
+            'message'         => 'Profile picture updated!',
+            'profile_picture' => '/main/api/users/user/uploads/profiles/' . $filename,
         ]);
     } else {
-        // Delete uploaded file on DB error
         unlink($filepath);
         http_response_code(500);
         echo json_encode(['error' => 'Database update failed']);
@@ -76,4 +78,3 @@ if (move_uploaded_file($file['tmp_name'], $filepath)) {
     http_response_code(500);
     echo json_encode(['error' => 'File upload failed']);
 }
-?>

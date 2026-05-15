@@ -1,39 +1,45 @@
 <?php
-// Update user cover photo
+// ============================================================
+//  update-cover-pic.php — Update cover/banner photo only
+//
+//  Auth: session OR POST user_id (localStorage flow)
+//  FILES: cover_photo (required)
+// ============================================================
 session_start();
-include '../../../config/db.php';
+
+// FIXED: correct path — 6 levels up from covers/ to project root
+require_once __DIR__ . '/../../../../../../config/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
+// Auth: accept session OR POST user_id
+$user_id = $_SESSION['user_id'] ?? trim($_POST['user_id'] ?? '');
+
+if (empty($user_id)) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit();
 }
 
-// Handle cover photo upload
 if (!isset($_FILES['cover_photo']) || $_FILES['cover_photo']['error'] !== UPLOAD_ERR_OK) {
     http_response_code(400);
     echo json_encode(['error' => 'No cover photo uploaded']);
     exit();
 }
 
-$file = $_FILES['cover_photo'];
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-$max_size = 5 * 1024 * 1024; // 5MB
+$file          = $_FILES['cover_photo'];
+$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$max_size      = 5 * 1024 * 1024; // 5 MB
 
-// Validate file
 if (!in_array($file['type'], $allowed_types)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Only JPG, PNG, GIF allowed']);
+    echo json_encode(['error' => 'Only JPG, PNG, GIF, WEBP allowed']);
     exit();
 }
 
@@ -43,28 +49,26 @@ if ($file['size'] > $max_size) {
     exit();
 }
 
-// Create uploads directory
-$upload_dir = '../../uploads/covers/';
+// FIXED: upload dir relative to this file's __DIR__
+// This file is at: main/api/users/user/uploads/covers/
+$upload_dir = __DIR__ . '/';
 if (!file_exists($upload_dir)) {
-    mkdir($upload_dir, 0777, true);
+    mkdir($upload_dir, 0755, true);
 }
 
-// Generate secure filename
-$extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-$filename = $user_id . '_cover_' . time() . '.' . $extension;
-$filepath = $upload_dir . $filename;
+$extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+$filename  = $user_id . '_cover_' . time() . '.' . $extension;
+$filepath  = $upload_dir . $filename;
 
-// Move file
 if (move_uploaded_file($file['tmp_name'], $filepath)) {
-    // Update database
-    $stmt = $conn->prepare("UPDATE users SET cover_photo = ? WHERE user_id = ?");
-    $stmt->bind_param("ss", $filename, $user_id);
-    
+    $stmt = $conn->prepare('UPDATE users SET cover_photo = ? WHERE user_id = ?');
+    $stmt->bind_param('ss', $filename, $user_id);
+
     if ($stmt->execute()) {
         echo json_encode([
-            'success' => true,
-            'message' => 'Cover photo updated!',
-            'cover_photo' => "http://localhost/uploads/covers/$filename"
+            'success'     => true,
+            'message'     => 'Cover photo updated!',
+            'cover_photo' => '/main/api/users/user/uploads/covers/' . $filename,
         ]);
     } else {
         unlink($filepath);
@@ -75,4 +79,3 @@ if (move_uploaded_file($file['tmp_name'], $filepath)) {
     http_response_code(500);
     echo json_encode(['error' => 'File upload failed']);
 }
-?>

@@ -7,9 +7,10 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<link rel="stylesheet" href="main/css/base.css"/>
-<link rel="stylesheet" href="main/css/feed.css"/>
-<link rel="stylesheet" href="main/css/profile.css"/>
+<!-- FIXED: was main/css/... — profile.html lives inside main/, so css/ is correct -->
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/feed.css"/>
+<link rel="stylesheet" href="css/profile.css"/>
 
 <style>
 /* ── Sidebar profile entry (uses base.css) ── */
@@ -30,6 +31,8 @@
   background: linear-gradient(135deg, #7AAACE 0%, #355872 100%);
   position: relative;
   cursor: pointer;
+  background-size: cover;
+  background-position: center;
 }
 .profile-banner:hover .banner-edit-hint { opacity: 1; }
 .banner-edit-hint {
@@ -126,6 +129,7 @@
   height: 110px;
   background: linear-gradient(135deg, #7AAACE 0%, #355872 100%);
   position: relative; cursor: pointer; transition: filter 0.2s;
+  background-size: cover; background-position: center;
 }
 .ep-banner-area:hover::after {
   content: '✎  Change Cover';
@@ -276,8 +280,10 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 <!-- NAVBAR -->
 <header class="navbar">
   <div class="nav-logo">
-    <a href="main/html/main-feed.html">
-      <img src="main/assets/logo-nobg.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+    <!-- FIXED: was main/html/main-feed.html — profile.html is inside main/ -->
+    <a href="html/main-feed.html">
+      <!-- FIXED: was main/assets/logo-nobg.png -->
+      <img src="assets/logo-nobg.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
       <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
     </a>
   </div>
@@ -289,27 +295,27 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
   </div>
   <div class="nav-actions">
     <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
-      <i class="fas fa-bell"></i><span class="badge">3</span>
+      <i class="fas fa-bell"></i><span class="badge" id="notifBadge"></span>
     </button>
     <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
+      <!-- FIXED: was /fixed-feedspace/main/assets/... — now uses dynamic src set by profile.js -->
       <img src="" alt="Profile" id="navbarAvatar"
-           onerror="this.src='/fixed-feedspace/main/assets/default-avatar.png'"/>
+           onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
       <span id="navbarProfileName">…</span>
     </div>
 
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Trixie liked your post</div><div class="notif-time">2 minutes ago</div></div></div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">New announcement in Community</div><div class="notif-time">1 hour ago</div></div></div>
-      <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-title">Someone shared your post</div><div class="notif-time">3 hours ago</div></div></div>
-      <div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Welcome to FeedSpace!</div><div class="notif-time">2 days ago</div></div></div>
+      <div id="notifList"><div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Loading…</div></div></div></div>
     </div>
 
     <div class="dropdown" id="settingsDropdown">
       <div class="dropdown-header">Settings</div>
+      <!-- FIXED: href points to profile.html relative to current location (already here) -->
       <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
       <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
       <div class="dropdown-divider"></div>
+      <!-- FIXED: was ../index.html — profile.html is in main/ so ../index.html is correct -->
       <div class="dropdown-item" onclick="window.location.href='../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
     </div>
   </div>
@@ -320,23 +326,25 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <a href="profile.html" class="sidebar-profile-entry" title="Go to profile">
+    <!-- FIXED: dynamic src set by profile.js -->
     <img src="" alt="Profile" id="sidebarAvatar"
-         onerror="this.src='/fixed-feedspace/main/assets/default-avatar.png'"/>
+         onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
     <span class="sidebar-profile-name" id="sidebarProfileName">…</span>
   </a>
 
   <div class="sidebar-divider"></div>
 
   <nav class="sidebar-nav">
-      <a href="main/html/main-feed.html"><i class="fas fa-home"></i><span>Feed</span></a>
-      <a href="main/html/announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-      <a href="main/html/communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
-      <a href="main/html/archive.html"><i class="fas fa-archive"></i><span>Archive</span></a>
-      <a href="main/html/help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
-      <a href="main/html/about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
-    </nav>
+    <!-- FIXED: was main/html/... — profile.html is already in main/ -->
+    <a href="html/main-feed.html"><i class="fas fa-home"></i><span>Feed</span></a>
+    <a href="html/announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+    <a href="html/communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
+    <a href="html/help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
+    <a href="html/about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
+  </nav>
 
   <div class="sidebar-bottom">
+    <!-- FIXED: was ../index.html — correct, main/ parent is project root -->
     <a href="../index.html" class="sidebar-signout">
       <i class="fas fa-sign-out-alt"></i><span>Sign out</span>
     </a>
@@ -358,19 +366,21 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
     <div class="profile-info-row">
 
       <div class="profile-avatar-wrap" onclick="document.getElementById('avatarFileInput').click()">
+        <!-- FIXED: dynamic src; fallback to dicebear instead of broken /fixed-feedspace/ path -->
         <img src="" class="profile-avatar" id="profileAvatar" alt="Profile"
-             onerror="this.src='/fixed-feedspace/main/assets/default-avatar.png'"/>
+             onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
         <div class="avatar-edit-overlay"><i class="fas fa-camera"></i></div>
       </div>
       <input type="file" id="avatarFileInput" accept="image/*"/>
 
       <div class="profile-text">
+        <!-- Populated dynamically by profile.js -->
         <h2 id="profileName"><i class="fas fa-check-circle verified-badge"></i></h2>
         <div class="profile-username" id="profileUsername"></div>
         <div class="profile-stats-row" id="profileStats">
-          <span data-stat="followers"><strong>—</strong> Followers</span>
-          <span data-stat="following"><strong>—</strong> Following</span>
           <span data-stat="posts"><strong>—</strong> Posts</span>
+          <span data-stat="communities"><strong>—</strong> Communities</span>
+          <span data-stat="role"><strong>—</strong></span>
         </div>
       </div>
 
@@ -386,7 +396,7 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
     </div>
   </div>
 
-  <!-- DYNAMIC POSTS CONTAINER -->
+  <!-- DYNAMIC POSTS CONTAINER — populated by profile.js -->
   <div class="posts-container"></div>
 
 </div>
@@ -401,8 +411,9 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
       <div class="ep-banner-area" id="epBannerPreview" onclick="document.getElementById('epBannerInput').click()"></div>
       <input type="file" id="epBannerInput" accept="image/*"/>
       <div class="ep-avatar-wrap" onclick="document.getElementById('epAvatarInput').click()">
+        <!-- FIXED: dynamic src; fallback updated -->
         <img src="" id="epAvatarPreview" alt="Avatar"
-             onerror="this.src='/fixed-feedspace/main/assets/default-avatar.png'"/>
+             onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
       </div>
       <input type="file" id="epAvatarInput" accept="image/*"/>
     </div>
@@ -414,13 +425,13 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
       </div>
 
       <label class="ep-label">Display Name</label>
-      <input type="text" class="ep-input" id="epName" value="" placeholder="Your name"/>
+      <input type="text" class="ep-input" id="epName" placeholder="Your full name"/>
 
       <label class="ep-label">Username</label>
-      <input type="text" class="ep-input" id="epUsername" value="" placeholder="@username"/>
+      <input type="text" class="ep-input" id="epUsername" placeholder="@username" readonly/>
 
       <label class="ep-label">Bio</label>
-      <textarea class="ep-input" id="epBio" placeholder="Tell the community about yourself..."></textarea>
+      <textarea class="ep-input" id="epBio" placeholder="Tell the community about yourself…"></textarea>
 
       <label class="ep-label">Choose Avatar</label>
       <div class="ep-avatar-seeds">
@@ -441,119 +452,112 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="main/js/base.js"></script>
-<script src="main/js/feed.js"></script>
-<script src="main/js/profile.js"></script>
+<!-- FIXED: was main/js/... -->
+<script src="js/base.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/profile.js"></script>
 
 <script>
-// ============================================
-// POST INTERACTION FUNCTIONS
-// ============================================
+// ── Post interaction helpers (called from profile.js–rendered HTML) ──
+
+function toggleDropdown(id) {
+  var dropdown = document.getElementById(id);
+  if (dropdown) {
+    document.querySelectorAll('.dropdown').forEach(function(d) {
+      if (d.id !== id) d.classList.remove('show');
+    });
+    dropdown.classList.toggle('show');
+  }
+}
 
 function togglePostOptions(btn) {
-    var menu = btn.nextElementSibling;
-    var allMenus = document.querySelectorAll('.post-options-menu');
-    for (var i = 0; i < allMenus.length; i++) {
-        if (allMenus[i] !== menu) {
-            allMenus[i].classList.remove('show');
-        }
-    }
-    menu.classList.toggle('show');
+  var menu = btn.nextElementSibling;
+  document.querySelectorAll('.post-options-menu').forEach(function(m) {
+    if (m !== menu) m.classList.remove('show');
+  });
+  menu.classList.toggle('show');
 }
 
 function closeOptions(el) {
-    el.closest('.post-options-menu').classList.remove('show');
+  el.closest('.post-options-menu').classList.remove('show');
 }
 
 function editPost(el) {
-    var card = el.closest('.post-card');
-    var body = card.querySelector('.post-body p');
-    var current = body ? body.innerText : '';
-    var newText = prompt('Edit your post:', current);
-    if (newText !== null && newText.trim() !== '') {
-        if (body) body.innerText = newText;
-        showToast('Post updated!');
-    }
-    closeOptions(el);
+  var card = el.closest('.post-card');
+  var body = card.querySelector('.post-body p');
+  var current = body ? body.innerText : '';
+  var newText = prompt('Edit your post:', current);
+  if (newText !== null && newText.trim() !== '') {
+    if (body) body.innerText = newText;
+    showToast('Post updated!');
+  }
+  closeOptions(el);
 }
 
 function deletePost(el) {
-    var card = el.closest('.post-card');
-    if (confirm('Delete this post?')) {
-        card.remove();
-        showToast('Post deleted.');
-    }
-    closeOptions(el);
+  var card = el.closest('.post-card');
+  if (confirm('Delete this post?')) {
+    card.style.transition = 'opacity 0.28s, transform 0.28s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-8px)';
+    setTimeout(function() { card.remove(); }, 290);
+    showToast('Post deleted.');
+  }
+  closeOptions(el);
 }
 
 function archivePost(el) {
-    var card = el.closest('.post-card');
-    card.style.opacity = '0.5';
-    showToast('Post archived!');
-    closeOptions(el);
+  el.closest('.post-card').style.opacity = '0.38';
+  showToast('Post archived!');
+  closeOptions(el);
 }
 
 function toggleComments(btn) {
-    var commentSection = btn.closest('.post-footer').nextElementSibling;
-    if (commentSection && commentSection.classList.contains('comment-section')) {
-        if (commentSection.style.display === 'none') {
-            commentSection.style.display = 'block';
-        } else {
-            commentSection.style.display = 'none';
-        }
-    }
+  var card = btn.closest('.post-card');
+  var section = card.querySelector('.comment-section');
+  if (section) {
+    var isHidden = section.style.display === 'none' || !section.style.display;
+    section.style.display = isHidden ? 'block' : 'none';
+  }
 }
 
 function openShareModal(btn) {
-    showToast('Link copied to clipboard!');
+  showToast('Link copied to clipboard!');
 }
 
 function addComment(btn, postId) {
-    var input = btn.closest('.comment-input-wrap').querySelector('input');
-    var comment = input.value.trim();
-    if (comment) {
-        showToast('Comment added!');
-        input.value = '';
-    }
+  var input = btn.closest('.comment-input-wrap').querySelector('input');
+  var comment = input.value.trim();
+  if (comment) {
+    showToast('Comment added!');
+    input.value = '';
+  }
 }
 
 function openReportModal(btn) {
-    showToast('Report feature coming soon!');
+  showToast('Report feature coming soon!');
+  closeOptions(btn);
 }
 
 function confirmDelete() {
-    if (confirm('Are you sure you want to delete your account? This cannot be undone!')) {
-        showToast('Account deletion requested');
-    }
+  if (confirm('Are you sure you want to delete your account? This cannot be undone!')) {
+    showToast('Account deletion requested');
+  }
 }
 
-function toggleDropdown(id) {
-    var dropdown = document.getElementById(id);
-    if (dropdown) {
-        var allDropdowns = document.querySelectorAll('.dropdown');
-        for (var i = 0; i < allDropdowns.length; i++) {
-            if (allDropdowns[i].id !== id) {
-                allDropdowns[i].classList.remove('show');
-            }
-        }
-        dropdown.classList.toggle('show');
-    }
-}
-
-// Close dropdowns when clicking outside
+// Close dropdowns/menus when clicking outside
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.post-card')) {
-        var allMenus = document.querySelectorAll('.post-options-menu');
-        for (var i = 0; i < allMenus.length; i++) {
-            allMenus[i].classList.remove('show');
-        }
-    }
-    if (!e.target.closest('.nav-actions')) {
-        var allDropdowns = document.querySelectorAll('.dropdown');
-        for (var i = 0; i < allDropdowns.length; i++) {
-            allDropdowns[i].classList.remove('show');
-        }
-    }
+  if (!e.target.closest('.post-card')) {
+    document.querySelectorAll('.post-options-menu').forEach(function(m) {
+      m.classList.remove('show');
+    });
+  }
+  if (!e.target.closest('.nav-actions')) {
+    document.querySelectorAll('.dropdown').forEach(function(d) {
+      d.classList.remove('show');
+    });
+  }
 });
 </script>
 </body>
