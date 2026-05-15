@@ -26,6 +26,9 @@ if (!$user) {
 
 $otp = rand(100000, 999999);
 
+require_once __DIR__ . '/../includes/mailer.php';
+
+
 // DELETE existing OTP first
 $delete = $pdo->prepare("
 DELETE FROM otp
@@ -41,9 +44,25 @@ VALUES (?, ?, 'login', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
 
 $stmt->execute([$user['user_id'], $otp]);
 
+// Send OTP via email
+$sent = sendOtpEmail($user['email'], (string)$otp);
+
+if (!$sent) {
+    // Fallback response without requiring log access
+    echo json_encode([
+        "success" => false,
+        "message" => "OTP generated but email failed to send",
+        "debug_email" => $user['email'],
+        "hint" => "Check SMTP credentials/TLS in config/mail.php and confirm vendor/autoload.php exists."
+    ]);
+    exit;
+}
+
+
 echo json_encode([
     "success" => true,
     "message" => "OTP sent",
+
     "user_id" => $user['user_id'],
     "otp_code" => $otp
 ]);

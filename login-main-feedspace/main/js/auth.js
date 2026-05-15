@@ -191,7 +191,7 @@ async function handleRegister(event) {
     if (result.success) {
       showToast('Account created successfully! Please log in.');
       setTimeout(() => {
-window.location.href = '../../index.html';
+window.location.href = 'index.html';
       }, 1000);
     } else {
       showToast(result.message || 'Registration failed');

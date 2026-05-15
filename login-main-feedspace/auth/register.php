@@ -36,8 +36,6 @@ if ($stmt->fetch()) {
 
 $user_id = trim($data['student_id'] ?? '');
 
-// Keep user_id exactly as user input (e.g. 0324-0708).
-
 $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
 $stmt = $pdo->prepare("
@@ -57,6 +55,11 @@ $stmt->execute([
 
 $otp = generateOTP();
 
+// Send OTP via email (if mail is configured)
+require_once __DIR__ . '/../includes/mailer.php';
+$sent = sendOtpEmail($email, (string)$otp);
+
+
 $stmt = $pdo->prepare("
 INSERT INTO otp
 (user_id, otp_code, type, expires_at)
@@ -71,4 +74,6 @@ echo json_encode([
     "otp" => $otp,
     "user_id" => $user_id
 ]);
+
 ?>
+
