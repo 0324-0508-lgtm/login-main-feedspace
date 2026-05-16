@@ -325,11 +325,11 @@
   .page-header p { opacity: 0.7; font-size: 0.86rem; margin-top: 4px; }
   
   /* ===== MODAL ===== */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(53,88,114,0.38); z-index: 300; align-items: center; justify-content: center; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(53,88,114,0.38); z-index: 300; align-items: center; justify-content: center; pointer-events: auto; }
   .modal-overlay.show { display: flex; animation: fadeIn 0.18s ease; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   
-  .modal { background: var(--color-white); border-radius: var(--radius-lg); width: 90%; max-width: 480px; box-shadow: var(--shadow-lg); overflow: hidden; }
+  .modal { background: var(--color-white); border-radius: var(--radius-lg); width: 90%; max-width: 480px; box-shadow: var(--shadow-lg); overflow: hidden; pointer-events: auto; }
   .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--color-border); }
   .modal-header h3 { font-weight: 800; color: var(--color-dark); font-size: 1rem; }
   .modal-close { background: none; border: none; font-size: 1rem; color: var(--color-subtext); cursor: pointer; transition: color 0.15s; }
@@ -346,6 +346,9 @@
   /* ===== TOAST ===== */
   .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--color-dark); color: var(--color-white); padding: 10px 26px; border-radius: var(--radius-full); font-weight: 700; font-size: 0.86rem; box-shadow: var(--shadow-md); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.28s; white-space: nowrap; }
   .toast.show { opacity: 1; }
+  .toast.success { background: #4caf50; }
+  .toast.warning { background: #ff9800; }
+  .toast.error { background: #f44336; }
   
   /* ===== SHARED POST CARD ===== */
   .post-card { background: var(--color-white); border-radius: var(--radius-md); border: 2px solid var(--color-border); margin-bottom: 14px; box-shadow: var(--shadow-sm); position: relative; overflow: visible; }
@@ -388,6 +391,8 @@
   .comment-bubble { background: var(--color-cream); border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md); padding: 8px 12px; flex: 1; }
   .comment-author { font-size: 0.78rem; font-weight: 800; color: var(--color-dark); margin-bottom: 2px; }
   .comment-text { font-size: 0.84rem; color: var(--color-text); line-height: 1.5; }
+  .mod-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
+  .mod-badge.flagged { background: #fff3cd; color: #856404; }
   
   /* ===== FORMS ===== */
   .form-group { margin-bottom: 14px; }

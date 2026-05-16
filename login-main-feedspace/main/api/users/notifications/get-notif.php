@@ -27,13 +27,19 @@ try {
     $offset = max(0, (int)($_GET['offset'] ?? 0));
     $unreadOnly = filter_var($_GET['unread'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-    if (!$userId || strlen($userId) !== 9) {
+    // Session/userId can be stored as int or string depending on login flow.
+    // Only require a non-empty value; avoid type/length validation that can block notifications.
+    if ($userId === null || $userId === '' ) {
         http_response_code(400);
         exit(json_encode([
             'success' => false,
-            'message' => 'Valid 9-character userId required or login is needed.'
+            'message' => 'User login is needed.'
         ]));
     }
+
+    // Ensure it's a string for DB binding (receiver_user_id is varchar(9)).
+    $userId = (string)$userId;
+
 
     $where = "receiver_user_id = ? AND receiver_type = 'user'";
     if ($unreadOnly) {

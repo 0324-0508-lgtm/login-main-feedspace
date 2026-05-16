@@ -42,7 +42,7 @@ function renderNotifications() {
   const dropdownList = document.getElementById('notifList');
   const panelList = document.getElementById('notificationsMiniList');
 
-  const htmlItems = notificationsData.map(function(item, index) {
+  const htmlItems = (notificationsData || []).map(function(item, index) {
     const readClass = item.is_read ? ' read' : '';
     const timeLabel = item.time_formatted || item.timestamp || item.time || 'Just now';
     return `
@@ -132,9 +132,8 @@ function updateNotificationBadge() {
   const badge = document.getElementById('notifCount');
   if (!badge) return;
 
-  const unreadCount = notificationsData.filter(function(item) {
-    return !item.is_read;
-  }).length;
+  // Prefer backend-provided unread count if present on items.
+  const unreadCount = notificationsData.reduce((acc, item) => acc + (!item.is_read ? 1 : 0), 0);
 
   badge.textContent = unreadCount;
   badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
@@ -142,9 +141,17 @@ function updateNotificationBadge() {
 
 async function loadNotifications() {
   const userId = getCurrentUserId();
-  const apiUrl = userId
-    ? `../api/users/notifications/get-notif.php?userId=${encodeURIComponent(userId)}&limit=20`
-    : '../api/users/notifications/get-notif.php?limit=20';
+
+  // Your backend can read $_SESSION['user_id'], but in some pages the session is not available via JS fetch.
+  // Passing userId explicitly keeps the dropdown working.
+  const apiUrl = new URL('../api/users/notifications/get-notif.php', window.location.href);
+  apiUrl.searchParams.set('limit', '20');
+  apiUrl.searchParams.set('unread', 'false');
+  // Pass userId explicitly so backend can query even if session JS cookies aren't available.
+  // Backend accepts: $_GET['user_id'] / $_GET['userId'].
+  if (userId) {
+    apiUrl.searchParams.set('userId', String(userId));
+  }
 
   try {
     const response = await fetch(apiUrl, { credentials: 'same-origin' });

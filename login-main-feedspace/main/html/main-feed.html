@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script>
+    if (window.location.pathname.endsWith('/main-feed.html')) {
+      window.location.replace(window.location.pathname.replace(/main-feed\.html$/, 'main-feed.php') + window.location.search);
+    }
+  </script>
   <title>FeedSpace – Where Ka-Piyu Connects</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -210,7 +215,7 @@
           <div class="create-post-top">
             <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
             <input type="text" id="newPostInput" class="create-post-input" placeholder="What's happening on campus?" onclick="openPostModal('')"/>
-            <button class="create-post-btn" onclick="openPostModal('')">+ Create Post</button>
+            <button onclick="openPostModal()" class="create-post-btn"> + Create Post</button>
           </div>
         </div>
 
@@ -252,11 +257,12 @@
     </div>
     <div class="modal-body">
       <textarea id="modalPostText" placeholder="What's on your mind?" rows="5"></textarea>
+
+      <input type="file" id="modalPostImage" accept="image/*" style="display:none;" />
       <div class="modal-attach-btns">
-        <button class="modal-attach-btn"><i class="fas fa-image"></i> Photo</button>
-        <button class="modal-attach-btn"><i class="fas fa-file"></i> File</button>
+        <button class="modal-attach-btn" type="button" onclick="document.getElementById('modalPostImage').click()"><i class="fas fa-image"></i> Photo</button>
+        <button class="modal-attach-btn" type="button" onclick="document.getElementById('modalPostImage').click()"><i class="fas fa-file"></i> File</button>
       </div>
-    </div>
     <div class="modal-footer">
       <button class="btn-primary" onclick="submitPost()">+ Create Post</button>
     </div>

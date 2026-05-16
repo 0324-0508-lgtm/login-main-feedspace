@@ -262,7 +262,7 @@ async function verifyOTP(data) {
       if (data.mode === 'forgot') {
         window.location.href = 'reset-password.html';
       } else {
-        window.location.href = 'main-feed.html';
+        window.location.href = 'main-feed.php';
       }
     }, 1500);
   } else {

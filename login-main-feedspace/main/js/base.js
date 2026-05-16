@@ -28,7 +28,7 @@ document.addEventListener('click', function(e) {
 
 let _toastTimer = null;
 
-function showToast(message) {
+function showToast(message, type = 'success') {
   let toast = document.getElementById('globalToast');
 
   if (!toast) {
@@ -39,7 +39,8 @@ function showToast(message) {
   }
 
   toast.textContent = message;
-  toast.classList.add('show');
+  toast.classList.remove('success', 'warning', 'error');
+  toast.classList.add('show', type);
 
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function() {
