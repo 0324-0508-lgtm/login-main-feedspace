@@ -325,7 +325,9 @@ const email = emailInput ? emailInput.value.trim() : '';
           showToast('Send OTP first');
           return;
         }        window.currentUserId = __loginOtp.userId;
-        localStorage.setItem('currentUserId', __loginOtp.userId);        window.location.href = 'main/html/main-feed.html';
+        localStorage.setItem('currentUserId', __loginOtp.userId);        
+          const APP_BASE = "http://localhost/login-main-feedspace/login-main-feedspace";
+window.location.href = `${APP_BASE}/main/html/main-feed.html`;  
       };
 
       window.addEventListener('DOMContentLoaded', function () {

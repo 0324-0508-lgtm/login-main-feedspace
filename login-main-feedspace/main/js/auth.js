@@ -53,6 +53,7 @@ function setLoading(btn, show = true) {
 }
 
 // API base path
+const API_BASE = "http://localhost/login-main-feedspace/login-main-feedspace/auth/"; //change path
   // Generic POST helper
 async function postAuth(endpoint, data) {
   const formData = new FormData();
@@ -191,7 +192,7 @@ async function handleRegister(event) {
     if (result.success) {
       showToast('Account created successfully! Please log in.');
       setTimeout(() => {
-window.location.href = 'index.html';
+        window.location.href = 'http://localhost/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
       }, 1000);
     } else {
       showToast(result.message || 'Registration failed');
@@ -246,14 +247,21 @@ async function handleForgotPassword(event) {
 
 // 4. SEND OTP
 async function sendOTP(data) {
-  const result = await postAuth('send-otp.php', data);
-  return result;
+  const result = await postAuth('api/send-otp.php', data);
+  // If backend returns invalid/empty response, surface it as an error string
+  if (result && typeof result === 'object' && 'success' in result) return result;
+  return { success: false, error: 'Failed to resend OTP' };
 }
+
+
+
+
 
 // 4. VERIFY OTP
 async function verifyOTP(data) {
   console.log('verifyOTP called with data:', data);
   const result = await postAuth('verify-otp.php', data);
+
   console.log('verifyOTP result:', result);
   console.log('SENT TO SERVER:', data);
 
@@ -269,7 +277,7 @@ async function verifyOTP(data) {
       if (data.mode === 'forgot') {
         window.location.href = 'reset-password.html';
 } else {
-        window.location.href = 'main/html/main-feed.html';
+        window.location.href = '/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
       }
 
     }, 1500);
@@ -279,6 +287,71 @@ async function verifyOTP(data) {
   }
   return result;
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  const resendBtn = document.getElementById('resendBtn');
+
+  if (!resendBtn) return;
+
+  const otpTimerSeconds = 180; // 3 minutes
+  const STORAGE_KEY = 'otp_resend_available_at';
+
+  const tick = () => {
+    const now = Date.now();
+    const availableAt = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    const remainingMs = availableAt - now;
+    const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+
+    if (remaining <= 0) {
+      resendBtn.disabled = false;
+      resendBtn.dataset.originalText = resendBtn.dataset.originalText || 'Resend Code';
+      resendBtn.innerHTML = resendBtn.dataset.originalText;
+      return;
+    }
+
+    resendBtn.disabled = true;
+    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const ss = String(remaining % 60).padStart(2, '0');
+    resendBtn.innerHTML = `Resend Code (${mm}:${ss})`;
+  };
+
+  const startOrResumeTimer = () => {
+    const now = Date.now();
+    const availableAt = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    if (!availableAt || availableAt < now) {
+      localStorage.setItem(STORAGE_KEY, String(now + otpTimerSeconds * 1000));
+    }
+    tick();
+    setInterval(tick, 1000);
+  };
+
+  startOrResumeTimer();
+
+  resendBtn.addEventListener('click', async function () {
+    tick();
+    if (resendBtn.disabled) return;
+
+    const user_id =
+      localStorage.getItem('currentUserId') ||
+      new URLSearchParams(window.location.search).get('user_id');
+
+    if (!user_id) {
+      showToast('User ID missing');
+      return;
+    }
+
+    const result = await sendOTP({ user_id });
+
+    if (result && result.success) {
+      showToast('OTP resent successfully 🔁');
+      localStorage.setItem(STORAGE_KEY, String(Date.now() + otpTimerSeconds * 1000));
+      tick();
+    } else {
+      showToast(result?.error || 'Failed to resend OTP');
+    }
+  });
+});
+
 
 // 5. LOGOUT (for dashboard)
 async function handleLogout() {

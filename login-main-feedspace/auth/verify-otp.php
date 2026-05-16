@@ -41,6 +41,8 @@ if (strtotime($otp['expires_at']) < time()) {
     exit;
 }
 
+
+
 // optional: delete OTP after success
 $del = $pdo->prepare("DELETE FROM otp WHERE user_id = ? AND type = 'login'");
 $del->execute([$user_id]);

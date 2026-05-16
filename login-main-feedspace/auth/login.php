@@ -37,16 +37,14 @@ if (!password_verify($password, $user['password_hash'])) {
 $otp = random_int(100000, 999999);
 
 /* 4. SAVE OTP TO DB */
-$stmt = $pdo->prepare("
-    UPDATE users 
-    SET otp_code = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 10 MINUTE)
-    WHERE user_id = ?
-");
+$stmt = $pdo->prepare(
+    "UPDATE users SET otp_code = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 3 MINUTE) WHERE user_id = ?"
+);
 $stmt->execute([$otp, $user['user_id']]);
 
-/* 5. SEND EMAIL (IMPORTANT FIX) */
+/* 5. SEND EMAIL */
 $email = $user['email'];
-$sent = sendOtpEmail($user['email'], (string)$otp); 
+$sent = sendOtpEmail($user['email'], (string)$otp);
 
 /* 6. RESPONSE */
 echo json_encode([
@@ -56,3 +54,4 @@ echo json_encode([
     "email_sent" => $sent
 ]);
 exit;
+
