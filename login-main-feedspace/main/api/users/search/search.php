@@ -1,7 +1,12 @@
+
 <?php
+// NOTE: no BOM/extra output before this tag
+
 // search.php - Universal Feedspace Search
 // Searches users, posts, communities in ONE call!
-
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+header('Content-Type: application/json');
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
@@ -38,6 +43,9 @@ $searchTypes = [
 
 $types = $searchTypes[$type] ?? $searchTypes['all'];
 
+// Fail-safe: if mysqli_prepare returns false, avoid PHP notices/fatals and return JSON.
+mysqli_report(MYSQLI_REPORT_OFF);
+
 $results = [];
 $total = 0;
 $searchTerm = "%$query%";
@@ -56,7 +64,7 @@ if (in_array('users', $types)) {
         OR user_id LIKE ?
         LIMIT ?
     ");
-    mysqli_stmt_bind_param($stmt, 'sss si', $searchTerm, $searchTerm, $searchTerm, $query, $limit);
+    mysqli_stmt_bind_param($stmt, 'ssssi', $searchTerm, $searchTerm, $searchTerm, $query, $limit);
     mysqli_stmt_execute($stmt);
     $userResult = mysqli_stmt_get_result($stmt);
     $results['users'] = [];
@@ -74,9 +82,9 @@ if (in_array('posts', $types)) {
         (SELECT COUNT(*) FROM post_likes WHERE post_id=p.post_id) as likes,
         'post' as type
         FROM posts p
-        WHERE content LIKE ? 
-        OR post_id LIKE ?
-        AND status = 'approved'
+        WHERE (content LIKE ?
+            OR post_id LIKE ?)
+          AND status = 'approved'
         ORDER BY created_at DESC
         LIMIT ?
     ");

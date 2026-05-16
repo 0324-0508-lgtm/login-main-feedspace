@@ -4,10 +4,10 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <script>
-    if (window.location.pathname.endsWith('/main-feed.html')) {
-      window.location.replace(window.location.pathname.replace(/main-feed\.html$/, 'main-feed.php') + window.location.search);
-    }
+    // No client-side redirect here.
+    // Auth guard is implemented in main-feed.php.
   </script>
+
   <title>FeedSpace – Where Ka-Piyu Connects</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -146,8 +146,9 @@
   <div class="nav-search">
     <div class="search-bar">
       <i class="fas fa-search"></i>
-      <input type="text" placeholder="Search posts, people, topics..."/>
+      <input id="navSearchInput" type="text" placeholder="Search posts, people, topics..." autocomplete="off"/>
     </div>
+    <div id="navSearchResults" class="nav-search-results" aria-live="polite"></div>
   </div>
 
   <div class="nav-actions">
@@ -219,8 +220,86 @@
           </div>
         </div>
 
-        <!-- Feed Posts -->
-        <div id="feedPosts" data-dynamic="true"></div>
+        <!-- Feed Posts (server-rendered by main-feed.php) -->
+<div id="feedPosts">
+          <!-- NOTE: When using feed-dynamic.js, these server-rendered posts are placeholders only. -->
+          <?php if (false && !empty($FEED_POSTS) && is_array($FEED_POSTS)): ?>
+            <?php foreach ($FEED_POSTS as $post): ?>
+
+              <?php
+                $pid = (int)($post['post_id'] ?? 0);
+                $content = htmlspecialchars((string)($post['content'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $author = htmlspecialchars((string)($post['full_name'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $avatar = htmlspecialchars((string)($post['profile_picture'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $img = $post['image'] ?? null;
+                $imgTag = $img ? '<div class="image-grid grid-1"><img src="'.htmlspecialchars((string)$img, ENT_QUOTES, 'UTF-8').'" alt="Post image" class="post-image"/></div>' : '';
+                $likeCount = (int)($post['like_count'] ?? 0);
+                $commentCount = (int)($post['comment_count'] ?? 0);
+                $userLiked = !empty($post['user_liked']);
+              ?>
+
+              <div class="post-card" data-post-id="<?= $pid ?>">
+                <div class="post-header">
+                  <img src="<?= $avatar ?>" alt="User" class="post-avatar"/>
+
+                  <div class="post-meta">
+                    <div class="post-author"><?= $author ?></div>
+                    <div class="post-community">Community · <span class="post-time"><?= htmlspecialchars((string)($post['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span></div>
+                  </div>
+
+<button class="options-btn" type="button" onclick="togglePostOptions(this)" style="pointer-events:auto;"><i class="fas fa-sliders-h"></i></button>
+
+                  <div class="post-options-menu" role="menu">
+                    <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
+                    <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
+
+
+                    <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
+                    <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
+                  </div>
+
+
+
+                </div>
+
+                <div class="post-body">
+                  <p><?= $content ?></p>
+                  <?= $imgTag ?>
+                </div>
+
+                <div class="post-footer">
+                  <button class="reaction-btn <?= $userLiked ? 'liked' : '' ?>" data-post-id="<?= $pid ?>" type="button" onclick="return toggleLike(this)">
+                    <i class="<?= $userLiked ? 'fas' : 'far' ?> fa-heart"></i>
+                    <span><?= $likeCount ?></span>
+                  </button>
+
+                  <button class="reaction-btn" type="button" onclick="toggleComments(this)">
+                    <i class="fas fa-comment"></i> <span><?= $commentCount ?></span>Comment
+                  </button>
+
+                  <button class="reaction-btn" type="button" onclick="openShareModal(this)">
+                    <i class="fas fa-share"></i> <span>Share</span>
+                  </button>
+                </div>
+
+                <div class="comment-section" style="display:none;">
+                  <div class="comment-input-row">
+                    <img src="http://localhost/assets/default.png" alt="User"/>
+                    <div class="comment-input-wrap">
+                      <input type="text" placeholder="Write a comment..."/>
+                      <button class="comment-send-btn" type="button" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div style="text-align:center;padding:20px;color:var(--color-subtext);">No posts yet.</div>
+          <?php endif; ?>
+        </div>
+
+
 
       </div><!-- /feed-center -->
 
@@ -241,7 +320,6 @@
     </div><!-- /feed-layout -->
   </main>
 </div>
-
 <!-- Create Post Modal -->
 <div class="modal-overlay" id="postModal">
   <div class="modal">
@@ -337,21 +415,29 @@
 <script src="../js/notifications.js"></script>
 <script src="../js/announcements.js"></script>
 <script src="../js/feed.js"></script>
+<script src="../js/feed-dynamic.js"></script>
+
+
 <script>
+
 function openAnnounceModal(btn) {
   // Close the post options menu
   const menu = btn.closest('.post-options-menu');
   if (menu) menu.classList.remove('show');
-  document.getElementById('announceReason').value = '';
-  document.getElementById('announceModal').classList.add('show');
+  // Reset + open modal
+  const reason = document.getElementById('announceReason');
+  if (reason) reason.value = '';
+  document.getElementById('announceModal')?.classList.add('show');
 }
+
 function submitAnnounceRequest() {
+
   const reason = document.getElementById('announceReason').value.trim();
   if (!reason) { showToast('Please tell us why this should be announced.'); return; }
   closeModal('announceModal');
   showToast('Request submitted! Admins will review your announcement request. 📢');
 }
 </script>
+
 </body>
 </html>
-
