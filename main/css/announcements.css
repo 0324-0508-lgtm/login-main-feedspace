@@ -1,0 +1,128 @@
+/* ============================================
+   announcements.css — Styles for announcements.html
+   ============================================ */
+
+.announcements-wrapper {
+  max-width: 860px;
+  width: 100%;
+}
+
+/* ============================================
+   ANNOUNCEMENT CARD
+   ============================================ */
+
+.announcement-card {
+  background: var(--color-white);
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.announcement-card:hover {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.ann-card-top {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.ann-card-icon {
+  min-width: 46px;
+  min-height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.ann-card-title-group {
+  flex: 1;
+}
+
+.ann-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(75,108,183,0.12);
+  color: #30468c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.announcement-card h3 {
+  font-weight: 800;
+  font-size: 1.18rem;
+  color: var(--color-text);
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.ann-card-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--color-subtext);
+}
+
+.ann-dot-separator {
+  font-size: 1rem;
+  color: var(--color-border);
+}
+
+.ann-card-text {
+  font-size: 0.96rem;
+  color: var(--color-text);
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+.ann-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 0.85rem;
+  color: var(--color-subtext);
+}
+
+.ann-footer span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ann-footer i {
+  color: var(--color-border);
+}
+
+.announcement-empty,
+.ann-mini-empty {
+  padding: 24px 18px;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-subtext);
+  text-align: center;
+}
+

@@ -1,0 +1,169 @@
+/* ============================================
+   profile.css — Profile page styles
+   FeedSpace | Where Ka-Piyu Connects
+   ============================================ */
+
+.profile-cover {
+  position: relative;
+  height: 190px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(122, 170, 206, 0.9), rgba(53, 88, 114, 0.95));
+  overflow: hidden;
+  margin-bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0;
+}
+
+.profile-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+}
+
+.profile-avatar-big {
+  width: 126px;
+  height: 126px;
+  border-radius: 24px;
+  border: 5px solid var(--color-white);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 1;
+  background: white;
+}
+
+.profile-info-card {
+  margin-top: -62px;
+  background: var(--color-white);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px 22px;
+  text-align: center;
+}
+
+.profile-name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--color-dark);
+  margin-bottom: 6px;
+}
+
+.profile-bio {
+  font-size: 0.95rem;
+  color: var(--color-subtext);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.profile-stat {
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px;
+}
+
+.profile-stat-num {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-dark);
+  margin-bottom: 4px;
+}
+
+.profile-stat-label {
+  font-size: 0.78rem;
+  color: var(--color-subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.profile-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--color-dark);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 10px 20px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.profile-edit-btn:hover {
+  background: var(--color-mid);
+  transform: translateY(-1px);
+}
+
+.post-card {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.post-header {
+  padding: 16px 16px 0;
+}
+
+.post-body {
+  padding: 14px 16px;
+}
+
+.post-footer {
+  padding: 10px 16px 14px;
+}
+
+.post-time {
+  color: var(--color-mid);
+}
+
+.options-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.post-options-menu {
+  right: 12px;
+}
+
+.image-grid {
+  margin-top: 12px;
+}
+
+.img-placeholder {
+  min-height: 120px;
+}
+
+@media (max-width: 740px) {
+  .main-content { padding: 18px 14px; }
+  .profile-cover { height: 160px; }
+  .profile-avatar-big { width: 110px; height: 110px; }
+  .profile-info-card { margin-top: -54px; padding: 16px 16px 20px; }
+  .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-stat { padding: 12px 10px; }
+  .options-btn { top: 12px; right: 12px; }
+}
+
+@media (max-width: 540px) {
+  .navbar { flex-wrap: wrap; height: auto; padding: 14px 16px; gap: 12px; }
+  .nav-search { width: 100%; }
+  .search-bar { width: 100%; }
+  .app-body { padding-top: 120px; }
+  .sidebar { position: static; width: 100%; min-height: auto; border-radius: 0; flex-direction: row; justify-content: space-between; padding: 10px 16px; }
+  .sidebar-nav { flex-direction: row; gap: 8px; padding: 0; }
+  .sidebar-about { border-top: none; }
+  .main-content { margin-left: 0; }
+  .content-center { max-width: 100%; }
+}
