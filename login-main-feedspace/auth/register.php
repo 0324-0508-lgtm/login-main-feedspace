@@ -17,19 +17,19 @@ $college    = trim($data['college'] ?? '');
 
 if (!$first_name || !$last_name || !$email || !$password) {
     echo json_encode([
-        "success" => false,
-        "message" => "All fields are required"
+        'success' => false,
+        'message' => 'All fields are required'
     ]);
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT email FROM users WHERE email = ?");
+$stmt = $pdo->prepare('SELECT email FROM users WHERE email = ?');
 $stmt->execute([$email]);
 
 if ($stmt->fetch()) {
     echo json_encode([
-        "success" => false,
-        "message" => "Email already exists"
+        'success' => false,
+        'message' => 'Email already exists'
     ]);
     exit;
 }
@@ -38,11 +38,11 @@ $user_id = trim($data['student_id'] ?? '');
 
 $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-$stmt = $pdo->prepare("
-INSERT INTO users
+$stmt = $pdo->prepare(
+    "INSERT INTO users
 (user_id, first_name, last_name, email, password_hash, college)
-VALUES (?, ?, ?, ?, ?, ?)
-");
+VALUES (?, ?, ?, ?, ?, ?)"
+);
 
 $stmt->execute([
     $user_id,
@@ -59,21 +59,19 @@ $otp = generateOTP();
 require_once __DIR__ . '/../includes/mailer.php';
 $sent = sendOtpEmail($email, (string)$otp);
 
-
-$stmt = $pdo->prepare("
-INSERT INTO otp
+// Save OTP (3-minute expiry)
+$stmt = $pdo->prepare(
+    "INSERT INTO otp
 (user_id, otp_code, type, expires_at)
-VALUES (?, ?, 'register', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
-");
+VALUES (?, ?, 'register', DATE_ADD(NOW(), INTERVAL 3 MINUTE))"
+);
 
 $stmt->execute([$user_id, $otp]);
 
 echo json_encode([
-    "success" => true,
-    "message" => "Registered successfully",
-    "otp" => $otp,
-    "user_id" => $user_id
+    'success' => true,
+    'message' => 'Registered successfully',
+    'otp' => $otp,
+    'user_id' => $user_id
 ]);
-
-?>
 
