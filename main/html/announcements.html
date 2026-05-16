@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Announcements – FeedSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/base.css"/>
+  <link rel="stylesheet" href="../css/announcements.css"/>
+</head>
+<body>
+
+<!-- ========== NAVBAR ========== -->
+<header class="navbar">
+  <div class="nav-logo">
+    <a href="main-feed.html">
+      <img src="logo.png" alt="FeedSpace" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+      <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
+    </a>
+  </div>
+
+  <div class="nav-search">
+    <div class="search-bar">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search posts, people, topics..."/>
+    </div>
+  </div>
+
+  <div class="nav-actions">
+    <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
+      <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
+    </button>
+    <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
+      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
+      <span>You</span>
+    </div>
+
+    <div class="dropdown" id="notifDropdown">
+      <div class="dropdown-header">Notifications</div>
+      <div id="notifList"></div>
+    </div>
+
+    <div class="dropdown" id="settingsDropdown">
+      <div class="dropdown-header">Settings</div>
+      <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
+      <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="window.location.href='../../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+    </div>
+  </div>
+</header>
+
+<!-- ========== BODY ========== -->
+<div class="app-body">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <a href="profile.html" class="sidebar-profile-entry" title="Go to profile">
+      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
+      <span class="sidebar-profile-name">Kim Ballebar</span>
+    </a>
+
+    <div class="sidebar-divider"></div>
+
+    <nav class="sidebar-nav">
+      <a href="main-feed.html"><i class="fas fa-home"></i><span>Feed</span></a>
+      <a href="announcements.html" class="active"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+      <a href="communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
+      <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
+      <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <a href="../../index.html" class="sidebar-signout">
+        <i class="fas fa-sign-out-alt"></i><span>Sign out</span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="announcements-wrapper">
+
+      <div class="page-header">
+        <h1><i class="fas fa-bullhorn"></i> Announcements</h1>
+        <p>Stay updated with the latest news from your communities.</p>
+      </div>
+
+      <div id="announcementsList"></div>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="../js/base.js"></script>
+<script src="../js/notifications.js"></script>
+<script src="../js/announcements.js"></script>
+</body>
+</html>
+
