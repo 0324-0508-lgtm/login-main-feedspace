@@ -119,7 +119,9 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const user_id = urlParams.get('user_id');
-        const mode = urlParams.get('mode');
+        // mode is optional; backend verify-otp.php currently expects type='login'
+        const mode = urlParams.get('mode') || 'login';
+
 
         if (!user_id) {
           showToast('User ID missing. Please sign in again.');

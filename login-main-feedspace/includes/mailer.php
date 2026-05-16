@@ -4,12 +4,15 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
 $autoload = __DIR__ . '/../vendor/autoload.php';
-if (file_exists($autoload)) {
-    require_once $autoload;
-} else {
-    error_log('Composer autoload missing. Run: composer install');
-    return false; // or throw
+$polyfillCtype = __DIR__ . '/../vendor/symfony/polyfill-ctype/bootstrap.php';
+
+if (!file_exists($autoload) || !file_exists($polyfillCtype)) {
+    error_log('Mailer disabled: Composer/vendor dependencies are missing or incomplete. Run: composer install');
+    return false;
 }
+
+require_once $autoload;
+
 
 function sendOtpEmail(string $toEmail, string $otpCode): bool
 {
@@ -22,6 +25,10 @@ function sendOtpEmail(string $toEmail, string $otpCode): bool
 
     try {
         $mail = new PHPMailer(true);
+
+        // Ensure SMTP-related failures are visible in PHP error logs
+        // (especially helpful when vendor dependencies are incomplete)
+
 
         $mail->isSMTP();
         $mail->SMTPDebug = 2;
@@ -161,8 +168,13 @@ $mail->AltBody = "Your FeedSpace OTP Code is: {$otpCode}. This code expires in 3
 
         return $mail->send();
     } catch (\Throwable $e) {
-        error_log('sendOtpEmail failed: ' . $e->getMessage());
+        error_log('sendOtpEmail failed (exception): ' . $e->getMessage());
+        // If PHPMailer threw after setting up $mail, include last known ErrorInfo when available
+        if (isset($mail) && property_exists($mail, 'ErrorInfo')) {
+            error_log('sendOtpEmail failed (PHPMailer ErrorInfo): ' . $mail->ErrorInfo);
+        }
         return false;
     }
 }
+
 

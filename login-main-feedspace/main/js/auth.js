@@ -25,21 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Password visibility toggle
-function togglePassword(id) {
-  const input = document.getElementById(id);
-  const icon = input.nextElementSibling?.querySelector('i');
-  if (input && icon) {
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.classList.remove('fa-eye');
-      icon.classList.add('fa-eye-slash');
-    } else {
-      input.type = 'password';
-      icon.classList.remove('fa-eye-slash');
-      icon.classList.add('fa-eye');
-    }
-  }
-}
+
 
 // Show loading on button
 function setLoading(btn, show = true) {
@@ -95,7 +81,6 @@ async function handleLogin(event) {
   if (isLoading) return;
 
   const loginIdentifier = document.getElementById('loginIdentifier')?.value.trim();
-  const password = document.getElementById('password')?.value;
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const schoolIdPattern = /^\d{4}-?\d{4}$/;
 
@@ -103,10 +88,7 @@ async function handleLogin(event) {
     showToast('Enter a valid email address or School ID (XXXX-XXXX or XXXXXXXX)');
     return;
   }
-  if (password.length < 6) {
-    showToast('Password must be 6+ characters');
-    return;
-  }
+
 
   const btn = event.target.querySelector('button[type="submit"]');
   btn.dataset.originalText = btn.innerHTML;
@@ -118,7 +100,8 @@ async function handleLogin(event) {
     normalizedIdentifier = loginIdentifier.slice(0, 4) + '-' + loginIdentifier.slice(4);
   }
 
-  const result = await postAuth('login.php', { identifier: normalizedIdentifier, password });
+  const result = await postAuth('login.php', { identifier: normalizedIdentifier });
+
 
   setLoading(btn, false);
   isLoading = false;
@@ -149,28 +132,24 @@ async function handleRegister(event) {
   const last_name = document.getElementById('lname')?.value.trim();
   const student_id = document.getElementById('student_id')?.value.trim();
   const email = document.getElementById('email')?.value.trim();
-  const password = document.getElementById('password')?.value;
-  const confirm = document.getElementById('confirm')?.value;
+
   const role = document.getElementById('role')?.value;
   const college = document.getElementById('college')?.value;
 
-  if (!first_name || !last_name || !student_id || !email || !password || !confirm || !role || !college) {
+  if (!first_name || !last_name || !student_id || !email || !role || !college) {
     showToast('Please fill in all required fields.');
     return;
   }
 
-  if (password !== confirm) {
-    showToast('Passwords do not match');
-    return;
-  }
 
   const btn = event.target.querySelector('button[type="submit"]');
+
   btn.dataset.originalText = btn.innerHTML;
   setLoading(btn, true);
   isLoading = true;
 
   try {
-    const res = await fetch('../../auth/register.php', {
+    const res = await fetch(`${API_BASE}register.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -180,19 +159,33 @@ async function handleRegister(event) {
         last_name,
         student_id,
         email,
-        password,
+
         role,
         college
       }),
       credentials: 'same-origin'
     });
 
-    const result = await res.json();
+
+    const contentType = res.headers.get('content-type') || '';
+    const raw = await res.text();
+
+    console.log('register.php status:', res.status);
+    console.log('register.php content-type:', contentType);
+    console.log('register.php raw response (first 300 chars):', raw.slice(0, 300));
+
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch (e) {
+      throw new Error('Non-JSON response from register.php: ' + raw.slice(0, 200));
+    }
 
     if (result.success) {
+
       showToast('Account created successfully! Please log in.');
       setTimeout(() => {
-        window.location.href = 'http://localhost/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
+        window.location.href = 'http://localhost/login-main-feedspace/login-main-feedspace/index.html';
       }, 1000);
     } else {
       showToast(result.message || 'Registration failed');
@@ -207,45 +200,8 @@ async function handleRegister(event) {
   isLoading = false;
 }
 
-// 3. FORGOT PASSWORD
-async function handleForgotPassword(event) {
-  event.preventDefault();
-  if (isLoading) return;
+// 3. SEND OTP
 
-  const email = document.getElementById('email')?.value.trim();
-  if (!email) {
-    showToast('Enter your email address');
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Enter a valid email address');
-    return;
-  }
-
-  const btn = event.target.querySelector('button[type="submit"]');
-  btn.dataset.originalText = btn.innerHTML;
-  setLoading(btn, true);
-  isLoading = true;
-
-  const result = await postAuth('forgot-password.php', { email });
-
-  setLoading(btn, false);
-  isLoading = false;
-
- if (result && result.success) {
-    showToast('OTP sent to your email! 📧');
-    setTimeout(() => {
-        // Pass user_id to verify page
-        window.location.href = `verify-account.html?user_id=${result.user_id}`;
-    }, 1000);
-    return;
-}
-
-  const errorMessage = result?.error || (typeof result === 'string' ? result : 'Unable to send OTP');
-  showToast(errorMessage);
-}
-
-// 4. SEND OTP
 async function sendOTP(data) {
   const result = await postAuth('api/send-otp.php', data);
   // If backend returns invalid/empty response, surface it as an error string
@@ -274,13 +230,9 @@ async function verifyOTP(data) {
 
     showToast('Login successful!');
     setTimeout(() => {
-      if (data.mode === 'forgot') {
-        window.location.href = 'reset-password.html';
-} else {
-        window.location.href = '/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
-      }
-
+      window.location.href = '/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
     }, 1500);
+
   } else {
     const errorMessage = result?.error || (typeof result === 'string' ? result : 'OTP verification failed');
     showToast(errorMessage);
@@ -364,9 +316,9 @@ async function handleLogout() {
 // Export/attach to window for onclick="handleLogin(event)"
 window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
-window.handleForgotPassword = handleForgotPassword;
+
 window.handleLogout = handleLogout;
-window.togglePassword = togglePassword;
+
 window.sendOTP = sendOTP;
 window.verifyOTP = verifyOTP;
 
