@@ -3,8 +3,8 @@
 return [
     'smtp_host' => 'smtp.gmail.com',
     'smtp_port' => 587,
-    'smtp_username' => '0324-0508@lspu.edu.ph',
-    'smtp_password' => 'wopopiqnsildjzso',
-    'from_email' => '0324-0508@lspu.edu.ph',
+    'smtp_username' => 'pontigatrixiemay.6@gmail.com',
+    'smtp_password' => 'mnsdlapogpzzrmfw',
+    'from_email' => 'pontigatrixiemay.6@gmail.com',
     'from_name' => 'FeedSpace',
 ];
