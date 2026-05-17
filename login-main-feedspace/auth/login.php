@@ -10,12 +10,11 @@ if (!$data) {
 }
 
 $identifier = trim($data['identifier'] ?? '');
-$password = trim($data['password'] ?? '');
-
-if (empty($identifier) || empty($password)) {
+if (empty($identifier)) {
     echo json_encode(["success" => false, "message" => "Missing fields"]);
     exit;
 }
+
 
 /* 1. FIND USER */
 $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? OR student_id = ?");
@@ -27,14 +26,9 @@ if (!$user) {
     exit;
 }
 
-/* 2. CHECK PASSWORD */
-if (!password_verify($password, $user['password_hash'])) {
-    echo json_encode(["success" => false, "message" => "Invalid credentials"]);
-    exit;
-}
-
-/* 3. GENERATE OTP */
+/* 2. GENERATE OTP (passwordless) */
 $otp = random_int(100000, 999999);
+
 
 /* 4. SAVE OTP TO DB */
 $stmt = $pdo->prepare(
