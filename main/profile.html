@@ -7,9 +7,10 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<link rel="stylesheet" href="../css/base.css"/>
-<link rel="stylesheet" href="../css/feed.css"/>
-<link rel="stylesheet" href="../css/profile.css"/>
+<!-- FIXED: was main/css/... — profile.html lives inside main/, so css/ is correct -->
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/feed.css"/>
+<link rel="stylesheet" href="css/profile.css"/>
 
 <style>
 /* ── Sidebar profile entry (uses base.css) ── */
@@ -30,6 +31,8 @@
   background: linear-gradient(135deg, #7AAACE 0%, #355872 100%);
   position: relative;
   cursor: pointer;
+  background-size: cover;
+  background-position: center;
 }
 .profile-banner:hover .banner-edit-hint { opacity: 1; }
 .banner-edit-hint {
@@ -126,6 +129,7 @@
   height: 110px;
   background: linear-gradient(135deg, #7AAACE 0%, #355872 100%);
   position: relative; cursor: pointer; transition: filter 0.2s;
+  background-size: cover; background-position: center;
 }
 .ep-banner-area:hover::after {
   content: '✎  Change Cover';
@@ -208,6 +212,66 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 .ep-save-btn:hover { background: var(--color-mid); }
 
 #bannerFileInput, #avatarFileInput, #epBannerInput, #epAvatarInput { display: none; }
+
+/* Loading spinner */
+.loading-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+}
+.spinner {
+  width: 50px; height: 50px;
+  border: 4px solid #fff; border-top-color: #7AAACE;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.toast-message {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e; color: white;
+  padding: 10px 20px; border-radius: 40px;
+  font-size: 0.85rem; z-index: 10001;
+  animation: fadeInUp 0.3s ease;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.no-posts {
+  text-align: center; padding: 60px 20px;
+  color: var(--color-subtext); font-size: 0.9rem;
+}
+.no-posts i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: 0.4; }
+
+/* Posts loading spinner */
+.posts-loading {
+  text-align: center; padding: 40px;
+  color: var(--color-subtext); font-size: 1.4rem;
+}
+
+/* Post images */
+.post-image {
+  max-width: 100%; border-radius: 12px;
+  margin-top: 10px; display: block;
+}
+
+/* Skeleton loading pulse */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.skeleton-pulse {
+  background: var(--color-border, #e0e0e0) !important;
+  color: transparent !important;
+  border-radius: 6px;
+  animation: skeletonPulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+  display: inline-block;
+}
+.skeleton-pulse * { visibility: hidden; }
 </style>
 </head>
 
@@ -216,8 +280,10 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 <!-- NAVBAR -->
 <header class="navbar">
   <div class="nav-logo">
-    <a href="main-feed.html">
-      <img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+    <!-- FIXED: was main/html/main-feed.html — profile.html is inside main/ -->
+    <a href="html/main-feed.html">
+      <!-- FIXED: was main/assets/logo-nobg.png -->
+      <img src="assets/logo-nobg.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
       <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
     </a>
   </div>
@@ -229,24 +295,28 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
   </div>
   <div class="nav-actions">
     <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
-      <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
+      <i class="fas fa-bell"></i><span class="badge" id="notifBadge"></span>
     </button>
     <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
-      <span>You</span>
+      <!-- FIXED: was /fixed-feedspace/main/assets/... — now uses dynamic src set by profile.js -->
+      <img src="" alt="Profile" id="navbarAvatar"
+           onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+      <span id="navbarProfileName">…</span>
     </div>
 
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
-      <div id="notifList"></div>
+      <div id="notifList"><div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Loading…</div></div></div></div>
     </div>
 
     <div class="dropdown" id="settingsDropdown">
       <div class="dropdown-header">Settings</div>
+      <!-- FIXED: href points to profile.html relative to current location (already here) -->
       <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
       <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
       <div class="dropdown-divider"></div>
-      <div class="dropdown-item" onclick="window.location.href='../../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+      <!-- FIXED: was ../index.html — profile.html is in main/ so ../index.html is correct -->
+      <div class="dropdown-item" onclick="window.location.href='../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
     </div>
   </div>
 </header>
@@ -256,22 +326,26 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <a href="profile.html" class="sidebar-profile-entry" title="Go to profile">
-    <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile" id="sidebarAvatar"/>
-    <span class="sidebar-profile-name">Kim Ballebar</span>
+    <!-- FIXED: dynamic src set by profile.js -->
+    <img src="" alt="Profile" id="sidebarAvatar"
+         onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+    <span class="sidebar-profile-name" id="sidebarProfileName">…</span>
   </a>
 
   <div class="sidebar-divider"></div>
 
   <nav class="sidebar-nav">
-      <a href="main-feed.html" class="active"><i class="fas fa-home"></i><span>Feed</span></a>
-      <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-      <a href="communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
-      <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
-      <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
-    </nav>
+    <!-- FIXED: was main/html/... — profile.html is already in main/ -->
+    <a href="html/main-feed.html"><i class="fas fa-home"></i><span>Feed</span></a>
+    <a href="html/announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+    <a href="html/communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
+    <a href="html/help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
+    <a href="html/about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
+  </nav>
 
   <div class="sidebar-bottom">
-    <a href="../../index.html" class="sidebar-signout">
+    <!-- FIXED: was ../index.html — correct, main/ parent is project root -->
+    <a href="../index.html" class="sidebar-signout">
       <i class="fas fa-sign-out-alt"></i><span>Sign out</span>
     </a>
   </div>
@@ -287,31 +361,34 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
     <div class="profile-banner" id="profileBanner" onclick="document.getElementById('bannerFileInput').click()">
       <div class="banner-edit-hint"><i class="fas fa-camera"></i> Change Cover Photo</div>
     </div>
-    <input type="file" id="bannerFileInput" accept="image/*" onchange="changeBanner(this)"/>
+    <input type="file" id="bannerFileInput" accept="image/*"/>
 
     <div class="profile-info-row">
 
       <div class="profile-avatar-wrap" onclick="document.getElementById('avatarFileInput').click()">
-        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" class="profile-avatar" id="profileAvatar"/>
+        <!-- FIXED: dynamic src; fallback to dicebear instead of broken /fixed-feedspace/ path -->
+        <img src="" class="profile-avatar" id="profileAvatar" alt="Profile"
+             onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
         <div class="avatar-edit-overlay"><i class="fas fa-camera"></i></div>
       </div>
-      <input type="file" id="avatarFileInput" accept="image/*" onchange="changeAvatarDirect(this)"/>
+      <input type="file" id="avatarFileInput" accept="image/*"/>
 
       <div class="profile-text">
-        <h2 id="profileName">Kim Ballebar <i class="fas fa-check-circle verified-badge"></i></h2>
-        <div class="profile-username" id="profileUsername">@kimballebar</div>
-        <div class="profile-stats-row">
-          <span><strong>1.2k</strong> Followers</span>
-          <span><strong>340</strong> Following</span>
-          <span><strong>12</strong> Posts</span>
+        <!-- Populated dynamically by profile.js -->
+        <h2 id="profileName"><i class="fas fa-check-circle verified-badge"></i></h2>
+        <div class="profile-username" id="profileUsername"></div>
+        <div class="profile-stats-row" id="profileStats">
+          <span data-stat="posts"><strong>—</strong> Posts</span>
+          <span data-stat="communities"><strong>—</strong> Communities</span>
+          <span data-stat="role"><strong>—</strong></span>
         </div>
       </div>
 
       <div class="profile-actions">
-        <button class="profile-edit-btn" onclick="openEditModal()">
+        <button class="profile-edit-btn" onclick="openEditModal()" style="display:none;">
           <i class="fas fa-pen"></i> Edit Profile
         </button>
-        <button class="profile-follow-btn" onclick="toggleFollow(this)">
+        <button class="profile-follow-btn" onclick="toggleFollow(this)" style="display:none;">
           <i class="fas fa-user-plus"></i> <span>Follow</span>
         </button>
       </div>
@@ -319,76 +396,8 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
     </div>
   </div>
 
-  <!-- POSTS -->
-  <div class="post-card">
-    <div class="post-header">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" class="post-avatar" id="postAvatar1"/>
-      <div class="post-meta">
-        <div class="post-author">Kim Ballebar</div>
-        <div class="post-community">Community Name · 2 hrs ago</div>
-      </div>
-      <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-ellipsis-h"></i></button>
-      <div class="post-options-menu">
-        <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-        <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-        <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-        <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-      </div>
-    </div>
-    <div class="post-body"><p>This is my first post on FeedSpace! 🎉</p></div>
-    <div class="post-footer">
-      <button class="reaction-btn" onclick="toggleLike(this)"><i class="far fa-heart"></i> <span>34</span></button>
-      <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
-      <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
-    </div>
-    <div class="comment-section" style="display:none;">
-      <div class="comment-input-row">
-        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
-        <div class="comment-input-wrap">
-          <input type="text" placeholder="Write a comment..."/>
-          <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="post-card" style="margin-top:14px;">
-    <div class="post-header">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" class="post-avatar" id="postAvatar2"/>
-      <div class="post-meta">
-        <div class="post-author">Kim Ballebar</div>
-        <div class="post-community">Community Name · Yesterday</div>
-      </div>
-      <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-ellipsis-h"></i></button>
-      <div class="post-options-menu">
-        <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-        <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-        <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-        <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-      </div>
-    </div>
-    <div class="post-body">
-      <p>Took these on my walk 🌤️</p>
-      <div class="image-grid grid-2">
-        <div class="img-placeholder"></div>
-        <div class="img-placeholder"></div>
-      </div>
-    </div>
-    <div class="post-footer">
-      <button class="reaction-btn" onclick="toggleLike(this)"><i class="far fa-heart"></i> <span>18</span></button>
-      <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>Comment</span></button>
-      <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
-    </div>
-    <div class="comment-section" style="display:none;">
-      <div class="comment-input-row">
-        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
-        <div class="comment-input-wrap">
-          <input type="text" placeholder="Write a comment..."/>
-          <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- DYNAMIC POSTS CONTAINER — populated by profile.js -->
+  <div class="posts-container"></div>
 
 </div>
 </main>
@@ -400,11 +409,13 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 
     <div style="position:relative;">
       <div class="ep-banner-area" id="epBannerPreview" onclick="document.getElementById('epBannerInput').click()"></div>
-      <input type="file" id="epBannerInput" accept="image/*" onchange="previewEpBanner(this)"/>
+      <input type="file" id="epBannerInput" accept="image/*"/>
       <div class="ep-avatar-wrap" onclick="document.getElementById('epAvatarInput').click()">
-        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" id="epAvatarPreview" alt="Avatar"/>
+        <!-- FIXED: dynamic src; fallback updated -->
+        <img src="" id="epAvatarPreview" alt="Avatar"
+             onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
       </div>
-      <input type="file" id="epAvatarInput" accept="image/*" onchange="previewEpAvatar(this)"/>
+      <input type="file" id="epAvatarInput" accept="image/*"/>
     </div>
 
     <div class="ep-modal-body">
@@ -414,13 +425,13 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
       </div>
 
       <label class="ep-label">Display Name</label>
-      <input type="text" class="ep-input" id="epName" value="Kim Ballebar" placeholder="Your name"/>
+      <input type="text" class="ep-input" id="epName" placeholder="Your full name"/>
 
       <label class="ep-label">Username</label>
-      <input type="text" class="ep-input" id="epUsername" value="@kimballebar" placeholder="@username"/>
+      <input type="text" class="ep-input" id="epUsername" placeholder="@username" readonly/>
 
       <label class="ep-label">Bio</label>
-      <textarea class="ep-input" id="epBio" placeholder="Tell the community about yourself..."></textarea>
+      <textarea class="ep-input" id="epBio" placeholder="Tell the community about yourself…"></textarea>
 
       <label class="ep-label">Choose Avatar</label>
       <div class="ep-avatar-seeds">
@@ -440,109 +451,114 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
-<script src="../js/base.js"></script>
-<script src="../js/notifications.js"></script>
-<script src="../js/feed.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- FIXED: was main/js/... -->
+<script src="js/base.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/profile.js"></script>
+
 <script>
-let pendingAvatarSrc = null;
+// ── Post interaction helpers (called from profile.js–rendered HTML) ──
 
-function openEditModal() {
-  document.getElementById('epAvatarPreview').src = document.getElementById('profileAvatar').src;
-  const nameNode = document.getElementById('profileName');
-  document.getElementById('epName').value = nameNode.childNodes[0].textContent.trim();
-  document.getElementById('epUsername').value = document.getElementById('profileUsername').textContent.trim();
-  document.getElementById('editProfileModal').classList.add('show');
-  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
-  pendingAvatarSrc = null;
+function toggleDropdown(id) {
+  var dropdown = document.getElementById(id);
+  if (dropdown) {
+    document.querySelectorAll('.dropdown').forEach(function(d) {
+      if (d.id !== id) d.classList.remove('show');
+    });
+    dropdown.classList.toggle('show');
+  }
 }
 
-function closeEditModal() {
-  document.getElementById('editProfileModal').classList.remove('show');
-  pendingAvatarSrc = null;
-}
-
-document.getElementById('editProfileModal').addEventListener('click', function(e) {
-  if (e.target === this) closeEditModal();
-});
-
-function applyAvatarEverywhere(src) {
-  ['profileAvatar','sidebarAvatar','postAvatar1','postAvatar2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.src = src;
+function togglePostOptions(btn) {
+  var menu = btn.nextElementSibling;
+  document.querySelectorAll('.post-options-menu').forEach(function(m) {
+    if (m !== menu) m.classList.remove('show');
   });
+  menu.classList.toggle('show');
 }
 
-function saveProfile() {
-  const name     = document.getElementById('epName').value.trim();
-  const username = document.getElementById('epUsername').value.trim();
-  if (name) {
-    const badge = document.getElementById('profileName').querySelector('.verified-badge');
-    document.getElementById('profileName').textContent = name + ' ';
-    if (badge) document.getElementById('profileName').appendChild(badge);
+function closeOptions(el) {
+  el.closest('.post-options-menu').classList.remove('show');
+}
+
+function editPost(el) {
+  var card = el.closest('.post-card');
+  var body = card.querySelector('.post-body p');
+  var current = body ? body.innerText : '';
+  var newText = prompt('Edit your post:', current);
+  if (newText !== null && newText.trim() !== '') {
+    if (body) body.innerText = newText;
+    showToast('Post updated!');
   }
-  if (username) document.getElementById('profileUsername').textContent = username;
-  if (pendingAvatarSrc) applyAvatarEverywhere(pendingAvatarSrc);
-  closeEditModal();
-  showToast('Profile updated! ✨');
+  closeOptions(el);
 }
 
-function selectSeed(img) {
-  document.querySelectorAll('.ep-avatar-seed-opt').forEach(i => i.classList.remove('selected'));
-  img.classList.add('selected');
-  const src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${img.dataset.seed}`;
-  document.getElementById('epAvatarPreview').src = src;
-  pendingAvatarSrc = src;
+function deletePost(el) {
+  var card = el.closest('.post-card');
+  if (confirm('Delete this post?')) {
+    card.style.transition = 'opacity 0.28s, transform 0.28s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-8px)';
+    setTimeout(function() { card.remove(); }, 290);
+    showToast('Post deleted.');
+  }
+  closeOptions(el);
 }
 
-function previewEpAvatar(input) {
-  if (!input.files || !input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('epAvatarPreview').src = e.target.result;
-    pendingAvatarSrc = e.target.result;
-    document.querySelectorAll('.ep-avatar-seed-opt').forEach(i => i.classList.remove('selected'));
-  };
-  reader.readAsDataURL(input.files[0]);
+function archivePost(el) {
+  el.closest('.post-card').style.opacity = '0.38';
+  showToast('Post archived!');
+  closeOptions(el);
 }
 
-function previewEpBanner(input) {
-  if (!input.files || !input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('epBannerPreview').style.background = `url(${e.target.result}) center/cover no-repeat`;
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function changeBanner(input) {
-  if (!input.files || !input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('profileBanner').style.background = `url(${e.target.result}) center/cover no-repeat`;
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function changeAvatarDirect(input) {
-  if (!input.files || !input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => { applyAvatarEverywhere(e.target.result); };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function toggleFollow(btn) {
-  const isFollowing = btn.classList.contains('following');
-  const icon = btn.querySelector('i');
-  const text = btn.querySelector('span');
-  if (isFollowing) {
-    btn.classList.remove('following'); icon.className = 'fas fa-user-plus'; text.textContent = 'Follow';
-    showToast('Unfollowed');
-  } else {
-    btn.classList.add('following'); icon.className = 'fas fa-user-check'; text.textContent = 'Following';
-    showToast('You are now following Kim Ballebar');
+function toggleComments(btn) {
+  var card = btn.closest('.post-card');
+  var section = card.querySelector('.comment-section');
+  if (section) {
+    var isHidden = section.style.display === 'none' || !section.style.display;
+    section.style.display = isHidden ? 'block' : 'none';
   }
 }
+
+function openShareModal(btn) {
+  showToast('Link copied to clipboard!');
+}
+
+function addComment(btn, postId) {
+  var input = btn.closest('.comment-input-wrap').querySelector('input');
+  var comment = input.value.trim();
+  if (comment) {
+    showToast('Comment added!');
+    input.value = '';
+  }
+}
+
+function openReportModal(btn) {
+  showToast('Report feature coming soon!');
+  closeOptions(btn);
+}
+
+function confirmDelete() {
+  if (confirm('Are you sure you want to delete your account? This cannot be undone!')) {
+    showToast('Account deletion requested');
+  }
+}
+
+// Close dropdowns/menus when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.post-card')) {
+    document.querySelectorAll('.post-options-menu').forEach(function(m) {
+      m.classList.remove('show');
+    });
+  }
+  if (!e.target.closest('.nav-actions')) {
+    document.querySelectorAll('.dropdown').forEach(function(d) {
+      d.classList.remove('show');
+    });
+  }
+});
 </script>
 </body>
 </html>
-
