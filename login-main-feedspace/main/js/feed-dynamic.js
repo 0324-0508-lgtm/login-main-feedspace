@@ -38,6 +38,9 @@ async function loadFeedPostsDynamic(page = 1) {
           ? getCurrentUserId()
           : (window.currentUserId || localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId')));
         const trimmedUid = uid != null ? String(uid).trim() : '';
+        // If JS auth is not providing a user_id, omit it so the API can rely on session cookies.
+        // But if cookies/session are missing, sending trimmedUid fixes feed loading.
+        // (We already send trimmedUid only when it exists.)
         console.log('feed-dynamic user_id:', { uid, trimmedUid });
 
         // So send form-urlencoded instead of application/json.
@@ -46,7 +49,7 @@ async function loadFeedPostsDynamic(page = 1) {
         body.set('page', String(page));
         if (trimmedUid) body.set('user_id', trimmedUid);
 
-        const response = await fetch('/api/users/posts/get-posts.php', {
+        const response = await fetch('../api/users/posts/get-posts.php', {
             method: 'POST',
             credentials: 'include',
             headers: {

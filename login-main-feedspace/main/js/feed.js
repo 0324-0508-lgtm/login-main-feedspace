@@ -73,6 +73,7 @@ function deletePost(el) {
     const postId = el.closest('.post-card')?.dataset?.postId;
     if (postId) {
       fetch('../api/users/posts/post-actions.php', {
+    credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -162,14 +163,12 @@ function addComment(btn) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   
   // Send comment to backend with AI moderation
-  fetch(`../api/users/interactions/add-comments.php?id=${postId}`, {
+  fetch('../api/users/interactions/toggle-post-like.php', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      postId: parseInt(postId),
-      text: text
-    })
-  })
+    body: JSON.stringify({ post_id: parseInt(postId, 10) })
+})
     .then(async r => {
       const raw = await r.text();
       try {
@@ -234,7 +233,8 @@ function addComment(btn) {
     });
 }
 
-function openPostModal(prefill) {
+// Expose for onclick handlers in main-feed.html
+window.openPostModal = function openPostModal(prefill) {
   const ta = document.getElementById('modalPostText');
   if (ta) ta.value = prefill || '';
   document.getElementById('postModal').classList.add('show');
@@ -290,9 +290,18 @@ function submitPost(e) {
   // getCurrentUserId() may return strings; ensure we append a trimmed value.
   const uid = getCurrentUserId();
   const trimmedUid = uid != null ? String(uid).trim() : '';
-  console.log('submitPost user_id fallback:', trimmedUid || null);
-  if (trimmedUid) {
-    form.append('user_id', trimmedUid);
+  // If auth flow never sets session cookies, fall back to localStorage currentUserId.
+  const lsFallback = (localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId'));
+  const finalUid = trimmedUid || (lsFallback != null ? String(lsFallback).trim() : '');
+  console.log('submitPost user_id fallback:', finalUid || null);
+  if (finalUid) {
+    form.append('user_id', finalUid);
+  }
+  // Always send current user id if available so backend can set session.
+  // (Some flows might not have session cookie at the time of posting.)
+  if (!finalUid) {
+    const ls2 = localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId');
+    if (ls2) form.append('user_id', String(ls2).trim());
   }
 
 
@@ -308,7 +317,7 @@ fetch('../api/users/posts/create-post.php', {
     method: 'POST',
     credentials: 'include',
     body: form
-  })
+})
     .then(async r => {
       console.log('Response status:', r.status);
       const text = await r.text();
@@ -401,9 +410,10 @@ function submitShare() {
     const postId = window.__pendingSharePostId;
     const commentWrap = document.querySelector(`.post-card[data-post-id="${postId}"] .comment-input-wrap input`);
     // Fallback: just send to API (same moderation pipeline as comments)
-    fetch(`../api/users/interactions/add-comments.php?id=${postId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+   fetch(`../api/users/interactions/add-comments.php?id=${postId}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         postId: parseInt(postId, 10),
         text: text
@@ -669,7 +679,16 @@ document.addEventListener('DOMContentLoaded', function() {
     performNavSearch(q);
   }
 });
+document.addEventListener('DOMContentLoaded', function () {
 
+    // Only run if a global loader exists.
+    // If feed-dynamic.js already loads posts, this avoids double-fetch that can cause flicker/errors.
+    if (typeof loadFeedPosts === 'function' && typeof window.__feedPostsLoaded !== 'boolean') {
+        window.__feedPostsLoaded = true;
+        loadFeedPosts();
+    }
+
+});
 
 
 

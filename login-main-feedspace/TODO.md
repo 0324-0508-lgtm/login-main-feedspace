@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # TODO
 - [x] Locate OTP expiry (10 minutes) in DB writes and email text.
 - [x] Change OTP expiry everywhere from 10 minutes to 3 minutes.
@@ -6,5 +5,5 @@
 - [x] Add resend countdown timer (3 minutes) on verify-account page.
 - [ ] Verify PHP files compile (no syntax errors) after edits.
 - [ ] Quick manual test: login -> OTP -> resend disabled/enabled after 3 minutes -> verify OTP.
->>>>>>> 29bf0854bd971764ba42c685e283aa4c50b02f7e
+
 
