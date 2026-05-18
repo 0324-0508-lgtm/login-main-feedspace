@@ -212,7 +212,7 @@ $FEED_POSTS = $posts;
 
     <div class="dropdown" id="settingsDropdown">
       <div class="dropdown-header">Settings</div>
-      <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
+      <div class="dropdown-item" onclick="window.location.href=''"><i class="fas fa-user-edit"></i> Edit Profile</div>
       <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
       <div class="dropdown-divider"></div>
       <div class="dropdown-item" onclick="window.location.href='../../api/logout.php'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
@@ -222,7 +222,7 @@ $FEED_POSTS = $posts;
 
 <div class="app-body">
   <aside class="sidebar">
-    <a href="profile.html" class="sidebar-profile-entry" title="Go to profile">
+    <a href="..\html\profile.html" class="sidebar-profile-entry" title="Go to profile">
       <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
       <span class="sidebar-profile-name">Kim Ballebar</span>
     </a>

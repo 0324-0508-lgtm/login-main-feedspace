@@ -8,9 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <!-- FIXED: was main/css/... — profile.html lives inside main/, so css/ is correct -->
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/feed.css"/>
-<link rel="stylesheet" href="css/profile.css"/>
+<link rel="stylesheet" href="..\css\base.css"/>
+<link rel="stylesheet" href="..\css\feed.css"/>
+<link rel="stylesheet" href="..\css\profile.css"/>
 
 <style>
 /* ── Sidebar profile entry (uses base.css) ── */
@@ -281,7 +281,7 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 <header class="navbar">
   <div class="nav-logo">
     <!-- FIXED: was main/html/main-feed.html — profile.html is inside main/ -->
-    <a href="html/main-feed.html">
+    <a href="html/feed-view.php">
       <!-- FIXED: was main/assets/logo-nobg.png -->
       <img src="assets/logo-nobg.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
       <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
@@ -336,7 +336,7 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 
   <nav class="sidebar-nav">
     <!-- FIXED: was main/html/... — profile.html is already in main/ -->
-    <a href="html/main-feed.html"><i class="fas fa-home"></i><span>Feed</span></a>
+    <a href="html/feed-view.php"><i class="fas fa-home"></i><span>Feed</span></a>
     <a href="html/announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
     <a href="html/communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
     <a href="html/help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
