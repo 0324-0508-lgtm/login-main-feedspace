@@ -141,10 +141,7 @@ async function handleRegister(event) {
     return;
   }
 
-  if (password !== confirm) {
-    showToast('Passwords do not match');
-    return;
-  }
+
 
   const btn = event.target.querySelector('button[type="submit"]');
 
@@ -163,7 +160,6 @@ async function handleRegister(event) {
         last_name,
         student_id,
         email,
-        password,
         role,
         college
       }),
@@ -175,7 +171,7 @@ async function handleRegister(event) {
     if (result.success) {
       showToast('Account created successfully! Please log in.');
       setTimeout(() => {
-        window.location.href = '/login-main-feedspace/main/html/main-feed.html';
+        window.location.href = '/login-main-feedspace/index.html';
       }, 1000);
     } else {
       showToast(result.message || 'Registration failed');
