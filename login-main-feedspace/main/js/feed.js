@@ -104,11 +104,12 @@ function toggleLike(btn) {
   const span = btn.querySelector('span');
 
 
-  fetch('../api/users/interactions/toggle-post-like.php', {
+ fetch('../api/users/interactions/toggle-post-like.php', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ post_id: parseInt(postId, 10) })
-  })
+})
     .then(r => r.json())
     .then(res => {
       if (!res || !res.success) throw new Error(res?.error || 'Toggle failed');
@@ -163,7 +164,7 @@ function addComment(btn) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   
   // Send comment to backend with AI moderation
-  fetch('../api/users/interactions/toggle-post-like.php', {
+  fetch('../api/users/interactions/add-comments.php', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -294,15 +295,19 @@ function submitPost(e) {
   const lsFallback = (localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId'));
   const finalUid = trimmedUid || (lsFallback != null ? String(lsFallback).trim() : '');
   console.log('submitPost user_id fallback:', finalUid || null);
-  if (finalUid) {
-    form.append('user_id', finalUid);
+
+  // Hard: ALWAYS send something if we can find an id.
+  // Backend returns 401 only when user_id is empty.
+  const userIdToSend = finalUid || (lsFallback != null ? String(lsFallback).trim() : '') || '';
+  if (!userIdToSend) {
+    console.warn('submitPost: missing user_id in client; dumping candidates', {
+      uid: uid,
+      trimmedUid: trimmedUid,
+      lsFallback
+    });
   }
-  // Always send current user id if available so backend can set session.
-  // (Some flows might not have session cookie at the time of posting.)
-  if (!finalUid) {
-    const ls2 = localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId');
-    if (ls2) form.append('user_id', String(ls2).trim());
-  }
+  // Backend uses session auth now; do not send user_id from client.
+
 
 
   // Add image file if selected
@@ -341,12 +346,13 @@ fetch('../api/users/posts/create-post.php', {
         showToast('Post shared! 🎉');
       }
 
-      closeModal('postModal');
-      if (ta) ta.value = '';
-      if (fileInput) fileInput.value = '';
+     closeModal('postModal');
 
-      console.log('Reloading feed...');
-      if (typeof loadFeedPosts === 'function') loadFeedPosts(1, true);
+ if (ta) ta.value = '';
+ if (fileInput) fileInput.value = '';
+
+console.log('Reloading page...');
+window.location.reload();
     })
     .catch(err => {
       console.error('Post creation error:', err);
@@ -410,12 +416,12 @@ function submitShare() {
     const postId = window.__pendingSharePostId;
     const commentWrap = document.querySelector(`.post-card[data-post-id="${postId}"] .comment-input-wrap input`);
     // Fallback: just send to API (same moderation pipeline as comments)
-   fetch(`../api/users/interactions/add-comments.php?id=${postId}`, {
+   fetch(`../api/users/interactions/add-comments.php`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        postId: parseInt(postId, 10),
+        post_id: parseInt(postId, 10),
         text: text
       })
     })
@@ -457,52 +463,67 @@ function submitShare() {
 }
 
 
-
 function createPostCard(post) {
-
-  const card = document.createElement('div');
-
-  card.className = 'post-card';
-
-  const avatar = post.profile_picture || 'http://localhost/assets/default.png';
-  const author = post.full_name || 'Unknown';
-
-  card.innerHTML = `
-    <div class="post-header">
-      <img src="${escapeAttr(avatar)}" alt="User" class="post-avatar"/>
-      <div class="post-meta">
-        <div class="post-author">${escapeHtml(author)}</div>
-        <div class="post-community">Community · <span class="post-time">${escapeHtml(post.created_at || '')}</span></div>
-      </div>
-      <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
-      <div class="post-options-menu">
-        <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-        <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-        <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-        <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-        <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
-      </div>
-    </div>
-    <div class="post-body">${post.image ? `<p>${escapeHtml(post.content || '')}</p><div class="image-grid grid-1"><img src="${escapeAttr(post.image)}" alt="Post image" class="post-image"/></div>` : `<p>${escapeHtml(post.content || '')}</p>`}</div>
-    <div class="post-footer">
-      <button class="reaction-btn ${post.user_liked ? 'liked' : ''}" data-post-id="${post.id}" onclick="toggleLike(this)">
-        <i class="${post.user_liked ? 'fas' : 'far'} fa-heart"></i>
-        <span>${Number(post.like_count || 0)}</span>
-      </button>
-      <button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> <span>${Number(post.comment_count || 0) ? '' : ''}Comment</span></button>
-      <button class="reaction-btn" onclick="openShareModal(this)"><i class="fas fa-share"></i> <span>Share</span></button>
-    </div>
-    <div class="comment-section" style="display:none;">
-      <div class="comment-input-row">
-        <img src="http://localhost/assets/default.png" alt="User"/>
-        <div class="comment-input-wrap">
-          <input type="text" placeholder="Write a comment..."/>
-          <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    
+    // Use post_id as the ID
+    const postId = post.post_id || post.id;
+    const avatar = post.profile_picture || 'http://localhost/assets/default.png';
+    const author = post.full_name || 'Unknown';
+    const content = post.content || '';
+    const image = post.image || post.file_url;
+    const likeCount = post.like_count || 0;
+    const commentCount = post.comment_count || 0;
+    const userLiked = post.user_liked || false;
+    
+    card.dataset.postId = postId;
+    
+    card.innerHTML = `
+        <div class="post-header">
+            <img src="${escapeAttr(avatar)}" alt="User" class="post-avatar"/>
+            <div class="post-meta">
+                <div class="post-author">${escapeHtml(author)}</div>
+                <div class="post-community">Community · <span class="post-time">${escapeHtml(post.created_at || '')}</span></div>
+                ${post.is_announcement ? '<span class="announcement-badge">📢 Announcement</span>' : ''}
+            </div>
+            <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
+            <div class="post-options-menu">
+                <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
+                <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
+                <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
+                <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
+                <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
+            </div>
         </div>
-      </div>
-    </div>`;
-
-  return card;
+        <div class="post-body">
+            <p>${escapeHtml(content)}</p>
+            ${image ? `<div class="image-grid grid-1"><img src="${escapeAttr(image)}" alt="Post image" class="post-image"/></div>` : ''}
+        </div>
+        <div class="post-footer">
+            <button class="reaction-btn ${userLiked ? 'liked' : ''}" data-post-id="${postId}" onclick="toggleLike(this)">
+                <i class="${userLiked ? 'fas' : 'far'} fa-heart"></i>
+                <span>${likeCount}</span>
+            </button>
+            <button class="reaction-btn" onclick="toggleComments(this)">
+                <i class="fas fa-comment"></i> <span>${commentCount}</span> Comment
+            </button>
+            <button class="reaction-btn" onclick="openShareModal(this)">
+                <i class="fas fa-share"></i> <span>Share</span>
+            </button>
+        </div>
+        <div class="comment-section" style="display:none;">
+            <div class="comment-input-row">
+                <img src="http://localhost/assets/default.png" alt="User"/>
+                <div class="comment-input-wrap">
+                    <input type="text" placeholder="Write a comment..."/>
+                    <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return card;
 }
 
 function escapeAttr(str) {
@@ -679,17 +700,135 @@ document.addEventListener('DOMContentLoaded', function() {
     performNavSearch(q);
   }
 });
-document.addEventListener('DOMContentLoaded', function () {
 
-    // Only run if a global loader exists.
-    // If feed-dynamic.js already loads posts, this avoids double-fetch that can cause flicker/errors.
-    if (typeof loadFeedPosts === 'function' && typeof window.__feedPostsLoaded !== 'boolean') {
-        window.__feedPostsLoaded = true;
-        loadFeedPosts();
+// Add these functions to feed.js
+
+function openAnnounceModal(el) {
+    closeOptions(el);
+    const modal = document.getElementById('announceModal');
+    if (modal) modal.classList.add('show');
+}
+
+function submitAnnounceRequest() {
+    const reason = document.getElementById('announceReason')?.value?.trim();
+    if (!reason) {
+        showToast('Please provide a reason for announcement request', 'warning');
+        return;
     }
+    
+    showToast('Announcement request submitted for review!', 'success');
+    closeModal('announceModal');
+    
+    // Clear the textarea
+    if (document.getElementById('announceReason')) {
+        document.getElementById('announceReason').value = '';
+    }
+}
 
-});
+function archivePost(el) {
+    const card = el.closest('.post-card');
+    if (!card) return;
+    
+    card.style.transition = 'opacity 0.28s, transform 0.28s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-8px)';
+    
+    setTimeout(() => card.remove(), 290);
+    showToast('Post archived.');
+    closeOptions(el);
+}
 
+// Fix addComment function - it was calling wrong endpoint
+function addComment(btn) {
+    const wrap = btn.closest('.comment-input-wrap');
+    const input = wrap.querySelector('input');
+    const text = input.value.trim();
+    
+    if (!text) {
+        showToast('Write something first!');
+        return;
+    }
+    
+    const card = btn.closest('.post-card');
+    const likeBtn = card.querySelector('[data-post-id]');
+    const postId = likeBtn ? likeBtn.dataset.postId : null;
+    
+    if (!postId) {
+        showToast('Error: Post ID not found');
+        return;
+    }
+    
+    btn.disabled = true;
+    const originalIcon = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    // Fix: Use add-comments.php endpoint instead of toggle-post-like.php
+    fetch('../api/users/interactions/add-comments.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            post_id: parseInt(postId, 10),
+            text: text 
+        })
+    })
+    .then(async r => {
+        const raw = await r.text();
+        try {
+            return JSON.parse(raw);
+        } catch {
+            console.error('add-comments non-JSON response:', raw);
+            throw new Error('Server returned an invalid response for comments');
+        }
+    })
+    .then(res => {
+        if (!res || !res.success) {
+            throw new Error(res?.message || 'Failed to add comment');
+        }
+        
+        if (res.warning) {
+            showToast(res.warning, 'warning');
+        } else {
+            showToast('Comment added! 💬');
+        }
+        
+        input.value = '';
+        
+        if (res.moderation_status !== 'removed') {
+            const section = btn.closest('.comment-section');
+            const item = document.createElement('div');
+            item.className = 'comment-item';
+            
+            let modBadge = '';
+            if (res.moderation_status === 'flagged') {
+                modBadge = '<span class="mod-badge flagged" title="This comment is flagged for review">⚠️ Under Review</span>';
+            }
+            
+            item.innerHTML = `
+                <img src="${escapeAttr(res.avatar)}" alt="User"/>
+                <div class="comment-bubble">
+                    <div class="comment-author">${escapeHtml(res.author)}</div>
+                    <div class="comment-text">${escapeHtml(res.text)}</div>
+                    ${modBadge}
+                </div>`;
+            section.appendChild(item);
+        }
+        
+        const commentBtn = card.querySelector('.reaction-btn:has(i.fa-comment)');
+        if (commentBtn) {
+            const span = commentBtn.querySelector('span');
+            if (span) span.textContent = String(res.comment_count || 0);
+        }
+    })
+    .catch(err => {
+        console.error('Comment error:', err);
+        showToast('Failed to add comment: ' + err.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalIcon;
+    });
+}
 
 
 

@@ -95,24 +95,32 @@ function renderAnnouncementsMiniList() {
 
 async function loadAnnouncements() {
   try {
-    const response = await fetch('../api/users/announcements/get-announcements.php');
+    const response = await fetch('../api/users/announcements/get-announcements.php', {
+      method: 'GET',
+      credentials: 'include'
+    });
     const json = await response.json();
 
     if (json.success && Array.isArray(json.announcements)) {
       announcementsData.splice(0, announcementsData.length, ...json.announcements);
     } else {
       console.error('Announcements fetch failed', json);
+      announcementsData.splice(0);
     }
   } catch (error) {
     console.error('Announcements fetch error', error);
+    announcementsData.splice(0);
   } finally {
     renderAnnouncementsList();
     renderAnnouncementsMiniList();
   }
 }
 
+
 function initAnnouncements() {
+  // Avoid duplicate renders when pages include scripts multiple times.
   loadAnnouncements();
 }
+
 
 document.addEventListener('DOMContentLoaded', initAnnouncements);

@@ -88,7 +88,7 @@ async function markNotificationRead(notifId) {
       body.userId = userId;
     }
 
-    const response = await fetch('../api/users/notifications/mark-read.php', {
+    const response = await fetch(new URL('../api/users/notifications/mark-read.php', window.location.href), {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
@@ -140,7 +140,10 @@ function updateNotificationBadge() {
 }
 
 async function loadNotifications() {
+  // Force-load userId from multiple sources.
+  // Some flows might store it in localStorage, others might expose it globally.
   const userId = getCurrentUserId();
+
 
   // Your backend can read $_SESSION['user_id'], but in some pages the session is not available via JS fetch.
   // Passing userId explicitly keeps the dropdown working.

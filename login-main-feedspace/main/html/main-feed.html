@@ -53,7 +53,7 @@
 <header class="navbar">
   <div class="nav-logo">
     <a href="main-feed.html">
-      <img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+      <img src="assets/logo-nobg.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
       <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
     </a>
   </div>
@@ -86,7 +86,7 @@
       <div class="dropdown-item" onclick="window.location.href='profile.html'"><i class="fas fa-user-edit"></i> Edit Profile</div>
       <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
       <div class="dropdown-divider"></div>
-      <div class="dropdown-item" onclick="window.location.href='../../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+      <div class="dropdown-item" window.location.href='../../api/logout.php''"><i class="fas fa-sign-out-alt"></i> Log Out</div>
     </div>
   </div>
 </header>
@@ -101,7 +101,7 @@
     <div class="sidebar-divider"></div>
 
     <nav class="sidebar-nav">
-      <a href="main-feed.html" class="active"><i class="fas fa-home"></i><span>Feed</span></a>
+      <a href="main-feed.php" class="active"><i class="fas fa-home"></i><span>Feed</span></a>
       <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
       <a href="communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
       <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
@@ -302,11 +302,11 @@
   </div>
 </div>
 
-<script src="main/js/base.js"></script>
-<script src="main/js/notifications.js"></script>
-<script src="main/js/announcements.js"></script>
-<script src="main/js/feed.js"></script>
-<script src="main/js/feed-dynamic.js"></script>
+<script src="../js/base.js"></script>
+<script src="../js/notifications.js"></script>
+<script src="../js/announcements.js"></script>
+<script src="../js/feed.js"></script>
+<script src="../js/feed-dynamic.js"></script>
 
 <script>
   // ========= Safety fallbacks for inline onclick =========
@@ -346,7 +346,9 @@
     form.append('content', text);
 
     // Try to pass user_id explicitly (backend supports $_POST['user_id'])
-    const uid = (window.user_id || window.USER_ID || localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId'));
+const uid = (typeof getCurrentUserId === 'function'
+      ? getCurrentUserId()
+      : (window.currentUserId || window.user_id || window.USER_ID || localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId')));
     if (uid) form.append('user_id', String(uid).trim());
 
     if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -374,8 +376,7 @@
         if (ta) ta.value = '';
         if (fileInput) fileInput.value = '';
         if (typeof loadFeedPosts === 'function') loadFeedPosts(1, true);
-        // if feed posts are server-rendered only, reload page
-        else window.location.reload();
+else window.location.reload();
       })
       .catch(err => {
         console.error('submitPost fallback error:', err);

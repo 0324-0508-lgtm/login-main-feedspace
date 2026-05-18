@@ -1,9 +1,8 @@
-# TODO
-- [x] Locate OTP expiry (10 minutes) in DB writes and email text.
-- [x] Change OTP expiry everywhere from 10 minutes to 3 minutes.
-- [x] Fix resend button to hit correct resend endpoint (auth/api/send-otp.php).
-- [x] Add resend countdown timer (3 minutes) on verify-account page.
-- [ ] Verify PHP files compile (no syntax errors) after edits.
-- [ ] Quick manual test: login -> OTP -> resend disabled/enabled after 3 minutes -> verify OTP.
-
+- [ ] Fix create-post endpoint file was accidentally JavaScript: replace with correct PHP (done)
+- [ ] Verify authorization now relies only on session user_id
+- [ ] Fix create-post DB insert binding/column mismatch for your actual schema (remaining)
+- [ ] Fix feed variable mismatch (like_count/comment_count/user_liked) across server + JS
+- [ ] Fix broken fetch URLs in JS (remaining)
+- [ ] Fix any remaining path include/require issues
+- [ ] Re-run quick manual tests: load feed, create post, like/comment
 

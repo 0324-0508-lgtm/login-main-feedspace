@@ -219,7 +219,7 @@
       transition: border-color 0.15s, background 0.15s;
     }
     .emoji-opt.selected { border-color: var(--color-dark); background: var(--color-light); }
-    .emoji-opt:hover { border-color: var(--color-mid); }
+
 
     .modal-footer {
       padding: 14px 20px 18px;
@@ -343,114 +343,9 @@
       <!-- ── COMMUNITIES PANEL ── -->
       <div class="tab-panel active" id="panelCommunities">
         <div class="section-label">All Communities</div>
-        <div class="comm-grid" id="commGrid">
-
-          <div class="comm-card" data-name="College of Computer Studies">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#355872,#7AAACE)">💻</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Computer Studies</div>
-              <div class="comm-card-desc">Tech talk, projects &amp; help for CCS students.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 5,500 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn liked" onclick="toggleCommLike(event,this)"><i class="fas fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of Arts and Sciences">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#7AAACE,#9CD5FF)">🎨</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Arts and Sciences</div>
-              <div class="comm-card-desc">Where creativity meets critical thinking.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 3,240 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of Business Administration and Accountancy">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#9CD5FF,#355872)">📊</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Business Administration and Accountancy</div>
-              <div class="comm-card-desc">Business, finance &amp; accounting discussions.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 4,800 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of Engineering">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#355872,#9CD5FF)">⚙️</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Engineering</div>
-              <div class="comm-card-desc">Engineering projects, news &amp; campus events.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 6,100 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn liked" onclick="toggleCommLike(event,this)"><i class="fas fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of Criminal Justice Education">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#7AAACE,#355872)">⚖️</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Criminal Justice Education</div>
-              <div class="comm-card-desc">Law, justice &amp; criminology community.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 2,700 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of Teacher Education">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#9CD5FF,#7AAACE)">📚</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Teacher Education</div>
-              <div class="comm-card-desc">Empowering future educators together.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 3,900 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of Industrial Technology">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#355872,#7AAACE)">🔧</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of Industrial Technology</div>
-              <div class="comm-card-desc">Skills, trades &amp; hands-on learning hub.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 2,100 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
-            </div>
-          </div>
-
-          <div class="comm-card" data-name="College of International Hospitality and Tourism Management">
-            <div class="comm-card-thumb" style="background:linear-gradient(135deg,#7AAACE,#9CD5FF)">🌍</div>
-            <div class="comm-card-body">
-              <div class="comm-card-name">College of International Hospitality and Tourism Management</div>
-              <div class="comm-card-desc">Travel, hospitality &amp; global experiences.</div>
-              <div class="comm-card-members"><i class="fas fa-users"></i> 1,870 members</div>
-            </div>
-            <div class="comm-card-footer">
-              <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-              <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
-            </div>
-          </div>
-
-        </div>
+        <div class="comm-grid" id="commGrid"></div>
       </div>
+
 
       <!-- ── LIKED PANEL ── -->
       <div class="tab-panel" id="panelLiked">
@@ -509,7 +404,7 @@
 
       <div class="form-group">
         <label class="form-label">College / Program *</label>
-        <select id="commCollege" class="form-select">
+        <select id="commCollege" class="form-select" onchange="handleCollegeOtherChange()">
           <option value="">— Select College —</option>
           <option value="College of Computer Studies">College of Computer Studies</option>
           <option value="College of Arts and Sciences">College of Arts and Sciences</option>
@@ -519,8 +414,15 @@
           <option value="College of Teacher Education">College of Teacher Education</option>
           <option value="College of Industrial Technology">College of Industrial Technology</option>
           <option value="College of International Hospitality and Tourism Management">College of International Hospitality and Tourism Management</option>
+          <option value="__other__">Other / Custom</option>
         </select>
       </div>
+
+      <div class="form-group" id="commCollegeOtherWrap" style="display:none;">
+        <label class="form-label">Custom College / Program *</label>
+        <input type="text" id="commCollegeOther" class="form-input" placeholder="Type your college/program"/>
+      </div>
+
 
       <div class="form-group">
         <label class="form-label">Pick an Icon</label>
@@ -548,7 +450,8 @@
   </div>
 </div>
 
-<script src="../js/base.js"></script>
+
+<script src="../js/auth.js"></script>
 <script>
   /* ── TABS ── */
   let currentTab = 'communities';
@@ -641,8 +544,18 @@
   }
 
   /* ── MODAL ── */
+  function handleCollegeOtherChange() {
+    const select = document.getElementById('commCollege');
+    const otherWrap = document.getElementById('commCollegeOtherWrap');
+    const otherInput = document.getElementById('commCollegeOther');
+    const isOther = select && select.value === '__other__';
+    if (otherWrap) otherWrap.style.display = isOther ? 'block' : 'none';
+    if (!isOther && otherInput) otherInput.value = '';
+  }
+
   function openCreateCommunity() { document.getElementById('createCommModal').classList.add('show'); }
   function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
   document.addEventListener('click', function(e) {
     const modal = document.getElementById('createCommModal');
     if (modal && e.target === modal) modal.classList.remove('show');
@@ -658,42 +571,180 @@
     return sel ? sel.textContent : '🌟';
   }
 
+  /* ── LOAD COMMUNITIES (dynamic list) ── */
+  async function loadCommunities() {
+    const grid = document.getElementById('commGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    try {
+      const res = await fetch('../api/users/communities/get-communities.php', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (!data || !data.success) throw new Error(data?.message || 'Failed to load communities');
+
+
+      const communities = data.communities || [];
+
+      if (!communities.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = '<i class="fas fa-users"></i><div>No communities found.</div>';
+        grid.appendChild(empty);
+        return;
+      }
+
+      communities.forEach((c) => {
+        const commId = c.id ?? c.community_id;
+        const name = c.name ?? c.community_name ?? '';
+        const desc = c.description ?? '';
+        const memberCount = c.member_count ?? 0;
+
+        // thumbnail fallback: if no community_picture, show emoji based on hash
+        const emojiPool = ['🌟','🔥','💡','🎯','🚀','🎨','📸','📚','🎮','🌿','🍜','💻','⚙️','⚖️','💚','📊','📚','🌍'];
+        let idx = 0;
+        const seedStr = String(name || commId || 'seed');
+        for (let i = 0; i < seedStr.length; i++) idx = (idx + seedStr.charCodeAt(i)) % emojiPool.length;
+        const emoji = emojiPool[idx];
+
+        const colors = ['#355872,#7AAACE','#7AAACE,#9CD5FF','#9CD5FF,#355872','#355872,#9CD5FF'];
+        const col = colors[(idx + 1) % colors.length];
+
+        const card = document.createElement('div');
+        card.className = 'comm-card';
+        card.dataset.name = name;
+        card.dataset.id = commId;
+        card.innerHTML = `
+          <div class="comm-card-thumb" style="background:linear-gradient(135deg,${col})">${emoji}</div>
+          <div class="comm-card-body">
+            <div class="comm-card-name">${name}</div>
+            <div class="comm-card-desc">${desc}</div>
+            <div class="comm-card-members"><i class="fas fa-users"></i> ${Number(memberCount).toLocaleString()} members</div>
+          </div>
+          <div class="comm-card-footer">
+            <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html?id=${encodeURIComponent(String(commId))}'">View Community</button>
+            <button class="comm-like-btn" onclick="toggleCommLike(event,this)"><i class="far fa-heart"></i></button>
+          </div>`;
+
+        grid.appendChild(card);
+      });
+
+      // apply current search filter if any
+      const input = document.getElementById('pageSearchInput');
+      if (input) handlePageSearch(input.value || '');
+    } catch (err) {
+      console.error('loadCommunities error:', err);
+      showToast('Error loading communities', 'error');
+    }
+  }
+
   /* ── CREATE COMMUNITY ── */
+  // Initial boot
+  (function initCommunitiesPage() {
+    try { loadCommunities(); } catch (e) { console.error('initCommunitiesPage', e); }
+    const input = document.getElementById('pageSearchInput');
+    if (input) input.addEventListener('input', () => handlePageSearch(input.value || ''));
+  })();
+
   function submitCreateCommunity() {
     const name    = document.getElementById('commName').value.trim();
     const desc    = document.getElementById('commDesc').value.trim();
-    const college = document.getElementById('commCollege').value;
-    if (!name)    { showToast('Please enter a community name.'); return; }
+    const collegeSelect = document.getElementById('commCollege');
+    let college = collegeSelect.value;
+
+    const otherWrap = document.getElementById('commCollegeOtherWrap');
+    const otherInput = document.getElementById('commCollegeOther');
+
+    // Support custom college/program
+    if (college === '__other__') {
+      college = (otherInput?.value || '').trim();
+      if (!college) {
+        showToast('Please enter a custom college/program.');
+        return;
+      }
+    }
+
+    if (!name) { showToast('Please enter a community name.'); return; }
     if (!college) { showToast('Please select a college.'); return; }
+
 
     const emoji  = getSelectedEmoji();
     const colors = ['#355872,#7AAACE','#7AAACE,#9CD5FF','#9CD5FF,#355872','#355872,#9CD5FF'];
     const col    = colors[Math.floor(Math.random() * colors.length)];
 
-    const grid = document.getElementById('commGrid');
-    const card = document.createElement('div');
-    card.className    = 'comm-card';
-    card.dataset.name = name;
-    card.innerHTML = `
-      <div class="comm-card-thumb" style="background:linear-gradient(135deg,${col})">${emoji}</div>
-      <div class="comm-card-body">
-        <div class="comm-card-name">${name}</div>
-        <div class="comm-card-desc">${desc || college}</div>
-        <div class="comm-card-members"><i class="fas fa-users"></i> 1 member</div>
-      </div>
-      <div class="comm-card-footer">
-        <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
-        <button class="comm-like-btn liked" onclick="toggleCommLike(event,this)"><i class="fas fa-heart"></i></button>
-      </div>`;
-    grid.insertBefore(card, grid.firstChild);
+    // Create via backend so it persists to DB
+    const form = new FormData();
+    form.append('community_name', name);
+    form.append('description', desc);
 
-    closeModal('createCommModal');
-    document.getElementById('commName').value = '';
-    document.getElementById('commDesc').value = '';
-    document.getElementById('commCollege').value = '';
-    document.querySelectorAll('.emoji-opt').forEach((e,i) => e.classList.toggle('selected', i===0));
-    switchTab('communities');
-    showToast(`Community "${name}" created! 🎉`);
+    showToast('Creating community...');
+
+    // Some deployments don’t reliably attach PHP session cookies for same-site navigation.
+    // Pass user_id explicitly from whatever the frontend already stores.
+    // auth.js stores the authenticated id in window.currentUserId + localStorage.currentUserId
+    // communities.html may be opened directly; fall back to those values.
+    const uid = (window.currentUserId || localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId'));
+
+    if (!uid) {
+      showToast('Please log in again (missing user session).', 'error');
+      return;
+    }
+
+    form.append('user_id', String(uid).trim());
+
+
+    fetch('../api/users/communities/create-community.php', {
+      method: 'POST',
+      credentials: 'include',
+      body: form
+    })
+
+      .then(async r => {
+        const raw = await r.text();
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return { success: false, message: raw };
+        }
+      })
+      .then(data => {
+        if (!data || !data.success) {
+          throw new Error(data?.message || 'Failed to create community');
+        }
+
+        const grid = document.getElementById('commGrid');
+        const card = document.createElement('div');
+        card.className    = 'comm-card';
+        card.dataset.name = name;
+        card.innerHTML = `
+          <div class="comm-card-thumb" style="background:linear-gradient(135deg,${col})">${emoji}</div>
+          <div class="comm-card-body">
+            <div class="comm-card-name">${name}</div>
+            <div class="comm-card-desc">${desc || college}</div>
+            <div class="comm-card-members"><i class="fas fa-users"></i> 1 member</div>
+          </div>
+          <div class="comm-card-footer">
+            <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.html'">View Community</button>
+            <button class="comm-like-btn liked" onclick="toggleCommLike(event,this)"><i class="fas fa-heart"></i></button>
+          </div>`;
+        grid.insertBefore(card, grid.firstChild);
+
+        closeModal('createCommModal');
+        document.getElementById('commName').value = '';
+        document.getElementById('commDesc').value = '';
+        document.getElementById('commCollege').value = '';
+        handleCollegeOtherChange();
+        document.querySelectorAll('.emoji-opt').forEach((e,i) => e.classList.toggle('selected', i===0));
+        switchTab('communities');
+        showToast(`Community "${name}" created! 🎉`);
+      })
+      .catch(err => {
+        console.error('create community error:', err);
+        showToast('Error: ' + err.message, 'error');
+      });
   }
 </script>
 </body>
