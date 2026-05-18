@@ -1,7 +1,0 @@
-In cmd/powershell
-
-cd C:\xampp\htdocs\login-main-feedspace\login-main-feedspace
-
-rmdir /s /q vendor
-
-composer install

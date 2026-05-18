@@ -82,7 +82,7 @@
               type="email"
               id="loginEmail"
               class="form-input"
-              placeholder="you@example.com"
+              placeholder="xxxx-xxxx@lspu.edu.ph"
               autocomplete="email"
               required
             />
@@ -140,7 +140,7 @@
       }
 
       async function loginOtpSendRequest(email) {
-        const res = await fetch('main/api/users/auth/login-otp.php', {
+        const res = await fetch('/login-main-feedspace/auth/login-otp.php', {
           method: 'POST',
           body: new URLSearchParams({ email }),
           credentials: 'same-origin'
@@ -166,10 +166,13 @@
           event.submitter.blur?.();
         }
 
+        console.log("EMAIL INPUT:", document.getElementById('loginEmail')?.value);
+
         event.preventDefault();
         if (window.__loginOtpLoading) return;
 
-        const email = document.getElementById('loginEmail')?.value?.trim();
+const emailInput = document.getElementById('loginEmail');
+const email = emailInput ? emailInput.value.trim() : '';
         if (!email) {
           showToast('Enter your email address');
           return;
@@ -179,7 +182,7 @@
           return;
         }
 
-        const btn = event.target.querySelector('button[type="submit"]');
+        const btn = document.getElementById('sendOtpBtn');
         if (btn) {
           btn.disabled = true;
           btn.dataset.originalText = btn.innerHTML;
@@ -197,7 +200,7 @@
             const otpParam = result.otp_code ? `&otp_code=${encodeURIComponent(result.otp_code)}` : '';
             // Redirect to verify account page and show code only there when available
             setTimeout(() => {
-              window.location.href = `main/html/verify-account.html?user_id=${result.user_id}${otpParam}`;
+  window.location.href = `main/html/verify-account.html?user_id=${encodeURIComponent(result.user_id)}`;
             }, 1000);
           } else {
             const message = result?.error || result?.message || 'Unable to send OTP';
@@ -226,7 +229,8 @@
           return;
         }
 
-        const email = document.getElementById('loginEmail')?.value?.trim();
+const emailInput = document.getElementById('loginEmail');
+const email = emailInput ? emailInput.value.trim() : '';
         if (!email) {
           showToast('Enter your email address');
           return;
@@ -277,7 +281,7 @@
             otp_code: otpCode
           });
 
-          const res = await fetch('main/api/users/auth/verify-otp.php', {
+          fetch('/login-main-feedspace/auth/verify-otp.php', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'
@@ -320,16 +324,15 @@
         if (!__loginOtp.userId) {
           showToast('Send OTP first');
           return;
-        }
-        window.currentUserId = __loginOtp.userId;
-        localStorage.setItem('currentUserId', __loginOtp.userId);
-        window.location.href = 'main/html/main-feed.php';
+        }        window.currentUserId = __loginOtp.userId;
+        localStorage.setItem('currentUserId', __loginOtp.userId);        
+          const APP_BASE = "http://localhost/login-main-feedspace";
+window.location.href = `${APP_BASE}/main/html/main-feed.html`;  
       };
 
       window.addEventListener('DOMContentLoaded', function () {
         const loginOtpForm = document.getElementById('loginOtpForm');
         if (loginOtpForm) {
-          loginOtpForm.addEventListener('submit', handleLoginOtpSend);
         }
       });
 

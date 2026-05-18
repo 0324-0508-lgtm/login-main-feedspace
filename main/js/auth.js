@@ -39,14 +39,7 @@ function setLoading(btn, show = true) {
 }
 
 // API base path
-const API_BASE = (() => {
-  const path = window.location.pathname.replace(/\\\/+$/, '');
-  if (path.includes('/main/html/')) {
-    return '../api/users/auth/';
-  }
-  return 'main/api/users/auth/';
-})();
-
+const API_BASE = "/login-main-feedspace/auth/";
 // Generic POST helper
 async function postAuth(endpoint, data) {
   const formData = new FormData();
@@ -160,7 +153,7 @@ async function handleRegister(event) {
   isLoading = true;
 
   try {
-    const res = await fetch('../../auth/register.php', {
+    const res = await fetch(`${API_BASE}register.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -182,7 +175,7 @@ async function handleRegister(event) {
     if (result.success) {
       showToast('Account created successfully! Please log in.');
       setTimeout(() => {
-        window.location.href = 'http://localhost/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
+        window.location.href = '/login-main-feedspace/main/html/main-feed.html';
       }, 1000);
     } else {
       showToast(result.message || 'Registration failed');
@@ -225,7 +218,7 @@ async function verifyOTP(data) {
       if (data.mode === 'forgot') {
         window.location.href = 'reset-password.html';
 } else {
-        window.location.href = '/login-main-feedspace/login-main-feedspace/main/html/main-feed.html';
+        window.location.href = '/login-main-feedspace/main/html/main-feed.html';
       }
 
     }, 1500);
