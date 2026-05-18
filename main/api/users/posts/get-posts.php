@@ -110,7 +110,7 @@ while ($row = $result->fetch_assoc()) {
             $row['profile_picture'] = "http://localhost/uploads/profiles/" . ltrim($row['profile_picture'], '/');
         }
     } else {
-        $row['profile_picture'] = "http://localhost/assets/default.png";
+        $row['profile_picture'] = "../assets/default.png";
     }
     
     // Format date

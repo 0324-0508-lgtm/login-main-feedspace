@@ -12,7 +12,7 @@ if (empty($email)) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+$stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
 $stmt->execute([$email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -28,11 +28,11 @@ if (!$user) {
 $otp = rand(100000, 999999);
 
 // DELETE existing OTP first
-$delete = $pdo->prepare("DELETE FROM otp WHERE user_id = ? AND type = 'login'");
+$delete = $conn->prepare("DELETE FROM otp WHERE user_id = ? AND type = 'login'");
 $delete->execute([$user['user_id']]);
 
 // INSERT new OTP with 3-minute expiry
-$stmt = $pdo->prepare("INSERT INTO otp (user_id, otp_code, type, expires_at)
+$stmt = $conn->prepare("INSERT INTO otp (user_id, otp_code, type, expires_at)
 VALUES (?, ?, 'login', DATE_ADD(NOW(), INTERVAL 3 MINUTE))");
 $stmt->execute([$user['user_id'], $otp]);
 

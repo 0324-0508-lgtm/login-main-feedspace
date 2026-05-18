@@ -21,14 +21,15 @@ if (isUserBanned($user_id, $conn)) {
 
 $data = json_decode(file_get_contents('php://input'), true);
 $post_id = (int)($data['post_id'] ?? 0);
+$content = trim($data['content'] ?? '');
 
-if (!$post_id) {
+if (!$post_id || empty($content)) {
     http_response_code(400);
-    echo json_encode(["error" => "Post ID required"]);
+    echo json_encode(["error" => "Post ID and content required"]);
     exit;
 }
 
-// Verify ownership (or admin)
+// Verify ownership
 $check = $conn->prepare("SELECT user_id FROM posts WHERE post_id = ? AND is_deleted = 0");
 $check->bind_param("i", $post_id);
 $check->execute();
@@ -40,28 +41,19 @@ if (!$post) {
     exit;
 }
 
-// Allow admin or owner to delete
-$role_check = $conn->prepare("SELECT role FROM users WHERE user_id = ?");
-$role_check->bind_param("s", $user_id);
-$role_check->execute();
-$user = $role_check->get_result()->fetch_assoc();
-
-$is_admin = in_array($user['role'], ['Admin', 'Staff']);
-
-if ($post['user_id'] !== $user_id && !$is_admin) {
+if ($post['user_id'] !== $user_id) {
     http_response_code(403);
-    echo json_encode(["error" => "Not authorized"]);
+    echo json_encode(["error" => "Not your post"]);
     exit;
 }
 
-// Soft delete
-$stmt = $conn->prepare("UPDATE posts SET is_deleted = 1, deleted_at = NOW() WHERE post_id = ?");
-$stmt->bind_param("i", $post_id);
+$stmt = $conn->prepare("UPDATE posts SET content = ? WHERE post_id = ?");
+$stmt->bind_param("si", $content, $post_id);
 
 if ($stmt->execute()) {
-    echo json_encode(["success" => true, "message" => "Post deleted"]);
+    echo json_encode(["success" => true, "message" => "Post updated"]);
 } else {
     http_response_code(500);
-    echo json_encode(["error" => "Delete failed"]);
+    echo json_encode(["error" => "Update failed"]);
 }
 ?>

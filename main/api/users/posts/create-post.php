@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+error_log('SESSION on create-post: ' . print_r($_SESSION, true));
+
+
 require_once __DIR__ . '/../../../../config/db.php';
 require_once __DIR__ . '/../../../../config/ban-check.php';
 
@@ -15,9 +18,23 @@ $user_id = trim($user_id);
 
 if ($user_id === '') {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+    // Return debug info to identify missing session cookie / user_id.
+    // Remove or disable after confirming the root cause.
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unauthorized',
+        'debug' => [
+            'session_id' => session_id(),
+            'session_user_id_type' => is_array($_SESSION['user_id'] ?? null) ? 'array' : gettype($_SESSION['user_id'] ?? null),
+            'session_user_id' => is_scalar($_SESSION['user_id'] ?? null) ? (string)($_SESSION['user_id'] ?? '') : '',
+            'cookies' => $_COOKIE,
+            'server_script' => $_SERVER['SCRIPT_NAME'] ?? null,
+            'request_uri' => $_SERVER['REQUEST_URI'] ?? null
+        ]
+    ]);
     exit();
 }
+
 
 if (function_exists('isUserBanned') && isUserBanned($user_id, $conn)) {
     http_response_code(403);
@@ -99,77 +116,50 @@ if ($content !== '' && mb_strlen($content) > 1000) {
 }
 
 // ---- Insert ----
-// Your provided assumption: posts table has: id, user_id, content, created_at, like_count, comment_count
-// Your actual dump uses: post_id, file_url, status, ai_status, etc.
-// We'll insert into the columns that exist in your actual dump.
-// Strategy: try the full schema first (post_id + file_url + status/ai_status), then fallback to minimal.
-
-// Determine values
-$file_url = $image ? $image : null;
-$file_type = $image ? 'image' : 'none';
-
-// Default moderation fields (safe)
-$status = 'approved';
-$ai_status = 'safe';
-$ai_score = 0.0;
-$ai_reason = null;
-$is_archived = 0;
-$is_deleted = 0;
-$visibility = 'public';
+// ---- Insert ----
+$file_url        = $image ?: null;
+$file_type       = $image ? 'image' : 'none';
+$visibility      = 'public';
+$status          = 'approved';
+$ai_status       = 'safe';
+$ai_score        = null;
+$ai_reason       = null;
+$is_archived     = 0;
+$is_deleted      = 0;
 $is_announcement = 0;
-$community_id = null;
+$community_id    = null;
 
-// Full-schema insert (matches your provided DB dump)
-$insertSqlFull = "INSERT INTO posts 
-    (user_id, content, file_url, file_type, visibility, status, ai_status, ai_score, ai_reason, created_at, updated_at, is_archived, is_deleted, is_announcement, community_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, ?, ?)";
+$sql = "INSERT INTO posts 
+    (user_id, community_id, content, file_url, file_type, visibility, status, 
+     is_archived, is_deleted, ai_score, ai_status, ai_reason, is_announcement)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-$stmt = $conn->prepare($insertSqlFull);
+$stmt = $conn->prepare($sql);
+$stmt->bind_param(
+    'sisssssiidssi',
+    $user_id,         // s
+    $community_id,    // i  ← NULL int
+    $content,         // s
+    $file_url,        // s
+    $file_type,       // s
+    $visibility,      // s
+    $status,          // s
+    $is_archived,     // i
+    $is_deleted,      // i
+    $ai_score,        // d
+    $ai_status,       // s
+    $ai_reason,       // s
+    $is_announcement  // i
+);
 
-if ($stmt) {
-    // Types: s(user_id) s(content) s(file_url) s(file_type) s(visibility) s(status) s(ai_status) d(ai_score) s(ai_reason) i(is_archived) i(is_deleted) i(is_announcement) i(community_id)
-    $community_id_int = $community_id === null ? 0 : (int)$community_id;
-
-    // mysqli bind_param cannot bind NULL for an 's' param unless we pass null.
-    // ai_reason may be null.
-    $stmt->bind_param(
-        'sssssssdssiiii',
-        $user_id,
-        $content,
-        $file_url,
-        $file_type,
-        $visibility,
-        $status,
-        $ai_status,
-        $ai_score,
-        $ai_reason,
-        $is_archived,
-        $is_deleted,
-        $is_announcement,
-        $community_id_int
-    );
-
-    if ($stmt->execute()) {
-        $postId = $conn->insert_id;
-        echo json_encode(['success' => true, 'post_id' => (int)$postId]);
-        exit();
-    }
-}
-
-// Fallback minimal insert (if your schema differs)
-$insertSqlMin = "INSERT INTO posts (user_id, content, created_at) VALUES (?, ?, NOW())";
-$stmtMin = $conn->prepare($insertSqlMin);
-if ($stmtMin) {
-    $stmtMin->bind_param('ss', $user_id, $content);
-    if ($stmtMin->execute()) {
-        $postId = $conn->insert_id;
-        echo json_encode(['success' => true, 'post_id' => (int)$postId]);
-        exit();
-    }
+if ($stmt->execute()) {
+    $postId = $conn->insert_id;
+    echo json_encode(['success' => true, 'post_id' => (int)$postId]);
+    exit();
 }
 
 http_response_code(500);
-echo json_encode(['success' => false, 'error' => 'Failed to create post']);
+echo json_encode(['success' => false, 'error' => 'Failed to create post', 'db_error' => $conn->error]);
 exit();
 
 

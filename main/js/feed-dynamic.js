@@ -127,7 +127,7 @@ function createFallbackPostCard(post) {
         </div>
         <div class="comment-section" style="display:none;">
             <div class="comment-input-row">
-                <img src="http://localhost/assets/default.png" alt="User"/>
+                <img src="../assets/default.png" alt="User"/>
                 <div class="comment-input-wrap">
                     <input type="text" placeholder="Write a comment..."/>
                     <button class="comment-send-btn" type="button" onclick="addComment(this)"><i class="fas fa-plus"></i></button>

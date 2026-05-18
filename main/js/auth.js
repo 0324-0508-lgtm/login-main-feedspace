@@ -214,7 +214,7 @@ async function verifyOTP(data) {
       if (data.mode === 'forgot') {
         window.location.href = 'reset-password.html';
 } else {
-        window.location.href = '/login-main-feedspace/main/html/main-feed.html';
+        window.location.href = '/login-main-feedspace/main/html/feed-view.php';
       }
 
     }, 1500);

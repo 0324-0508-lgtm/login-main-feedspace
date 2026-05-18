@@ -17,7 +17,6 @@ function togglePostOptions(btn) {
 }
 
 
-
 function getCurrentUserId() {
   // Prefer global (set after OTP verify)
   const stored = window.user_id ?? window.USER_ID ?? window.userId ?? window.currentUserId;
@@ -514,7 +513,7 @@ function createPostCard(post) {
         </div>
         <div class="comment-section" style="display:none;">
             <div class="comment-input-row">
-                <img src="http://localhost/assets/default.png" alt="User"/>
+                <img src="../assets/default.png" alt="User"/>
                 <div class="comment-input-wrap">
                     <input type="text" placeholder="Write a comment..."/>
                     <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
@@ -615,7 +614,7 @@ function renderNavSearchResults(data) {
       const content = (p?.content || '').toString().trim();
       const title = content.length > 60 ? content.slice(0, 60) + '…' : content;
       // No dedicated post page in repo; route to feed and prefill query.
-      const href = id ? `main-feed.html?q=${encodeURIComponent(title)}` : null;
+      const href = id ? `feed-view.php?q=${encodeURIComponent(title)}` : null;
       html += makeItem('fas fa-file-alt', title || `Post #${id}`, `Post ID: ${id}`, href);
     });
   }

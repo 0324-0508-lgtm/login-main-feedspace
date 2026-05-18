@@ -46,7 +46,7 @@ $users = [];
 while ($user = $result->fetch_assoc()) {
     $user['profile_picture'] = $user['profile_picture'] ? 
         "http://localhost/uploads/profiles/" . $user['profile_picture'] : 
-        "http://localhost/assets/default.png";
+        "../assets/default.png";
     $user['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
     $users[] = $user;
 }

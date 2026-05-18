@@ -41,7 +41,7 @@ $likers = [];
 while ($liker = $result->fetch_assoc()) {
     $liker['profile_picture'] = $liker['profile_picture'] ? 
         "http://localhost/uploads/profiles/" . $liker['profile_picture'] : 
-        "http://localhost/assets/default.png";
+        "../assets/default.png";
     $liker['full_name'] = trim($liker['first_name'] . ' ' . $liker['last_name']);
     $likers[] = $liker;
 }

@@ -1,93 +1,64 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../../../config/db.php';
 header('Content-Type: application/json');
 
-$user_id = $_SESSION['user_id'] ?? '';
+require_once __DIR__ . '/../../../../config/database.php';
+require_once __DIR__ . '/../../../../config/ban-check.php';
 
-if (empty($user_id)) {
-    $user_id = trim($_POST['user_id'] ?? '');
-}
-
-if (empty($user_id)) {
+if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'User not authenticated']);
-    exit();
+    echo json_encode(["error" => "Not logged in"]);
+    exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true) ?? [];
-$post_id = intval($input['post_id'] ?? $_POST['post_id'] ?? 0);
-$text = trim($input['text'] ?? $_POST['text'] ?? '');
+$user_id = $_SESSION['user_id'];
 
-if ($post_id <= 0 || empty($text)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid post ID or empty comment']);
-    exit();
+if (isUserBanned($user_id, $conn)) {
+    http_response_code(403);
+    echo json_encode(["error" => "You are banned"]);
+    exit;
 }
 
-// Check if post exists and is not deleted
-$check_stmt = $conn->prepare("SELECT post_id FROM posts WHERE post_id = ? AND is_deleted = 0");
-$check_stmt->bind_param("i", $post_id);
-$check_stmt->execute();
-if ($check_stmt->get_result()->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'Post not found']);
-    exit();
-}
-$check_stmt->close();
+$data = json_decode(file_get_contents('php://input'), true);
+$post_id = (int)($data['post_id'] ?? 0);
+$content = trim($data['content'] ?? '');
 
-// Insert comment (adjust table name if needed)
-$stmt = $conn->prepare("
-    INSERT INTO comments (post_id, user_id, content, created_at) 
-    VALUES (?, ?, ?, NOW())
-");
-
-if (!$stmt) {
-    echo json_encode(['success' => false, 'message' => 'Database error']);
-    exit();
+if (!$post_id || empty($content)) {
+    http_response_code(400);
+    echo json_encode(["error" => "Post ID and content required"]);
+    exit;
 }
 
-$stmt->bind_param("iis", $post_id, $user_id, $text);
+// Verify post exists and is not deleted
+$check = $conn->prepare("SELECT post_id FROM posts WHERE post_id = ? AND is_deleted = 0");
+$check->bind_param("i", $post_id);
+$check->execute();
+if (!$check->get_result()->num_rows) {
+    http_response_code(404);
+    echo json_encode(["error" => "Post not found"]);
+    exit;
+}
+
+$stmt = $conn->prepare("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)");
+$stmt->bind_param("iss", $post_id, $user_id, $content);
 
 if ($stmt->execute()) {
-    $comment_id = $conn->insert_id;
-    $stmt->close();
+    $comment_id = $stmt->insert_id;
     
-    // Get user info
-    $user_stmt = $conn->prepare("SELECT first_name, last_name, profile_picture FROM users WHERE user_id = ?");
-    $user_stmt->bind_param("i", $user_id);
-    $user_stmt->execute();
-    $user_info = $user_stmt->get_result()->fetch_assoc();
-    $user_stmt->close();
+    // Get comment with user info
+    $get = $conn->prepare("
+        SELECT c.*, u.first_name, u.last_name, u.profile_picture 
+        FROM comments c 
+        JOIN users u ON c.user_id = u.user_id 
+        WHERE c.comment_id = ?
+    ");
+    $get->bind_param("i", $comment_id);
+    $get->execute();
+    $result = $get->get_result()->fetch_assoc();
     
-    // Get updated comment count
-    $count_stmt = $conn->prepare("SELECT COUNT(*) as count FROM comments WHERE post_id = ?");
-    $count_stmt->bind_param("i", $post_id);
-    $count_stmt->execute();
-    $count_data = $count_stmt->get_result()->fetch_assoc();
-    $count_stmt->close();
-    
-    $full_name = trim(($user_info['first_name'] ?? '') . ' ' . ($user_info['last_name'] ?? ''));
-    if (empty($full_name)) {
-        $full_name = 'User';
-    }
-    
-    $avatar = !empty($user_info['profile_picture']) 
-        ? "http://localhost/uploads/profiles/" . $user_info['profile_picture']
-        : "http://localhost/assets/default.png";
-    
-    echo json_encode([
-        'success' => true,
-        'comment_id' => $comment_id,
-        'text' => htmlspecialchars($text),
-        'author' => htmlspecialchars($full_name),
-        'avatar' => $avatar,
-        'comment_count' => $count_data['count'],
-        'moderation_status' => 'approved'
-    ]);
+    echo json_encode(["success" => true, "comment" => $result]);
 } else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to add comment: ' . $stmt->error
-    ]);
-    $stmt->close();
+    http_response_code(500);
+    echo json_encode(["error" => "Failed to add comment"]);
 }
 ?>

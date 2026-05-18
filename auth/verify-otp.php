@@ -1,4 +1,5 @@
 <?php
+session_start(); 
 header("Content-Type: application/json");
 require_once __DIR__ . '/../config/db.php';
 
@@ -22,7 +23,7 @@ if ($mode === '' || $mode === 'null' || $mode === null) $mode = 'login';
 $otp_code = preg_replace('/\D/', '', $otp_code);
 
 
-$stmt = $pdo->prepare("
+$stmt = $conn->prepare("
 SELECT * FROM otp
 WHERE user_id = ? AND otp_code = ? AND type = ?
 ORDER BY expires_at DESC
@@ -48,13 +49,9 @@ if (strtotime($otp['expires_at']) < time()) {
     ]);
     exit;
 }
-
-
-
 // optional: delete OTP after success
-$del = $pdo->prepare("DELETE FROM otp WHERE user_id = ? AND type = ?");
-$del->execute([$user_id, $mode]);
-
+$_SESSION['user_id'] = $user_id;
+$_SESSION['logged_in'] = true;
 
 echo json_encode([
     "success" => true,
