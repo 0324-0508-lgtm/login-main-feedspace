@@ -1,484 +1,593 @@
-// feed.js — Home Feed Logic
+// feed.js — FeedSpace Main Feed
+
+/*
+|--------------------------------------------------------------------------
+| UTILITY FUNCTIONS
+|--------------------------------------------------------------------------
+*/
+
+function escapeHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeAttr(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(message, type = 'info') {
+    // Implement your toast notification here
+    console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+/*
+|--------------------------------------------------------------------------
+| POST OPTIONS MENU
+|--------------------------------------------------------------------------
+*/
 
 function togglePostOptions(btn) {
-  // harden: if click is on <i> inside the button, use the closest options-btn
-  const btnEl = btn?.classList?.contains('options-btn') ? btn : btn?.closest?.('.options-btn');
-  if (!btnEl) return;
+    const btnEl = btn?.classList?.contains('options-btn') ? btn : btn?.closest?.('.options-btn');
+    if (!btnEl) return;
 
-  const card = btnEl.closest('.post-card');
-  const menu = card ? card.querySelector('.post-options-menu') : null;
-  if (!menu) return;
+    const card = btnEl.closest('.post-card');
+    const menu = card ? card.querySelector('.post-options-menu') : null;
+    if (!menu) return;
 
-  document.querySelectorAll('.post-options-menu').forEach(m => {
-    if (m !== menu) m.classList.remove('show');
-  });
+    document.querySelectorAll('.post-options-menu').forEach(m => {
+        if (m !== menu) m.classList.remove('show');
+    });
 
-  menu.classList.toggle('show');
+    menu.classList.toggle('show');
 }
 
-
-function getCurrentUserId() {
-  // Prefer global (set after OTP verify)
-  const stored = window.user_id ?? window.USER_ID ?? window.userId ?? window.currentUserId;
-  if (stored) return stored;
-
-  // Then localStorage (OTP/verify-account flow)
-  const ls = localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId');
-  if (ls) return ls;
-
-  // Finally, check URL params (some pages may pass it)
-  const params = new URLSearchParams(window.location.search);
-  return params.get('user_id') || params.get('userId') || null;
+function closeOptions(el) {
+    el.closest('.post-options-menu').classList.remove('show');
 }
 
-
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.post-card')) {
-    document.querySelectorAll('.post-options-menu').forEach(m => m.classList.remove('show'));
-  }
-
-  // Close navbar search results when clicking outside search area.
-  const searchWrap = e.target.closest('#navSearchInput')?.closest('.nav-search');
-  if (!searchWrap) {
-    const results = document.getElementById('navSearchResults');
-    if (results) results.classList.remove('show');
-  }
-});
-
-function safeText(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'<').replace(/>/g,'>');
-}
-
-function closeOptions(el) { el.closest('.post-options-menu').classList.remove('show'); }
+/*
+|--------------------------------------------------------------------------
+| EDIT POST
+|--------------------------------------------------------------------------
+*/
 
 function editPost(el) {
-  const card = el.closest('.post-card');
-  const body = card.querySelector('.post-body p');
-  const newText = prompt('Edit your post:', body ? body.innerText : '');
-  if (newText !== null && newText.trim()) { if (body) body.innerText = newText; showToast('Post updated!'); }
-  closeOptions(el);
+    const card = el.closest('.post-card');
+    const body = card.querySelector('.post-body p');
+    const newText = prompt('Edit your post:', body ? body.innerText : '');
+
+    if (newText !== null && newText.trim()) {
+        const postId = card.dataset.postId;
+
+        fetch('../api/users/posts/post-actions.php', {
+            credentials: 'include',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'edit',
+                post_id: postId,
+                content: newText
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (body) body.innerText = newText;
+                showToast('Post updated!');
+            } else {
+                showToast(res.error || 'Update failed', 'error');
+            }
+        })
+        .catch(() => showToast('Update failed', 'error'));
+    }
+    closeOptions(el);
 }
 
+/*
+|--------------------------------------------------------------------------
+| DELETE POST
+|--------------------------------------------------------------------------
+*/
+
 function deletePost(el) {
-  const card = el.closest('.post-card');
-  if (!card) return;
-  if (confirm('Delete this post?')) {
+    const card = el.closest('.post-card');
+    if (!card) return;
+
+    if (!confirm('Delete this post?')) {
+        closeOptions(el);
+        return;
+    }
+
+    const postId = card.dataset.postId;
+
     card.style.transition = 'opacity 0.28s, transform 0.28s';
     card.style.opacity = '0';
     card.style.transform = 'translateY(-8px)';
 
-    // Hard-delete will be handled server-side in this codebase (post-actions.php expects action=delete).
-    // This UI only removes the card optimistically; backend will process deletion.
-    const postId = el.closest('.post-card')?.dataset?.postId;
-    if (postId) {
-      fetch('../api/users/posts/post-actions.php', {
-    credentials: 'include',
+    fetch('../api/users/posts/post-actions.php', {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          action: 'delete',
-          post_id: postId
+            action: 'delete',
+            post_id: postId
         })
-      }).catch(() => {
-        showToast('Delete failed', 'error');
-      });
-    }
-
-    setTimeout(() => card.remove(), 290);
-    showToast('Post deleted.');
-  }
-  closeOptions(el);
-}
-
-
-
-
-
-function toggleLike(btn) {
-  const postId = btn?.dataset?.postId;
-  if (!postId) return;
-
-  // Ensure liked UI is derived from current DOM state
-  const isLiked = btn.classList.contains('liked');
-  const span = btn.querySelector('span');
-
-
- fetch('../api/users/interactions/toggle-post-like.php', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ post_id: parseInt(postId, 10) })
-})
+    })
     .then(r => r.json())
     .then(res => {
-      if (!res || !res.success) throw new Error(res?.error || 'Toggle failed');
-
-      const nextLiked = !!res.is_liked;
-      btn.classList.toggle('liked', nextLiked);
-      const icon = btn.querySelector('i');
-      if (icon) icon.className = nextLiked ? 'fas fa-heart' : 'far fa-heart';
-      if (span) span.textContent = String(res.likesCount ?? 0);
-
-      // Update button label if needed (future-proof)
+        if (res.success) {
+            setTimeout(() => card.remove(), 290);
+            showToast('Post deleted.');
+        } else {
+            showToast(res.error || 'Delete failed', 'error');
+            card.style.opacity = '1';
+            card.style.transform = 'none';
+        }
     })
     .catch(() => {
-      showToast(isLiked ? 'Failed to unlike' : 'Failed to like');
+        showToast('Delete failed', 'error');
+        card.style.opacity = '1';
+        card.style.transform = 'none';
     });
+
+    closeOptions(el);
 }
 
+/*
+|--------------------------------------------------------------------------
+| LIKE / UNLIKE
+|--------------------------------------------------------------------------
+*/
+
+function toggleLike(btn) {
+    const postId = btn?.dataset?.postId;
+    if (!postId) return;
+
+    const isLiked = btn.classList.contains('liked');
+    const span = btn.querySelector('span');
+
+    fetch('../api/users/interactions/toggle-post-like.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: parseInt(postId, 10) })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (!res || !res.success) throw new Error(res?.error || 'Toggle failed');
+
+        const nextLiked = !!res.liked;
+        btn.classList.toggle('liked', nextLiked);
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = nextLiked ? 'fas fa-heart' : 'far fa-heart';
+        if (span) span.textContent = String(res.likesCount ?? 0);
+    })
+    .catch(() => showToast(isLiked ? 'Failed to unlike' : 'Failed to like', 'error'));
+}
+
+/*
+|--------------------------------------------------------------------------
+| COMMENTS
+|--------------------------------------------------------------------------
+*/
+
+async function loadComments(postId, section) {
+    try {
+        const res = await fetch('../api/users/interactions/get-comments.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post_id: parseInt(postId, 10), page: 1 })
+        });
+
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); }
+        catch { throw new Error('Invalid server response'); }
+
+        if (!data?.success) throw new Error(data?.error || 'Failed to load comments');
+
+        const inputRow = section.querySelector('.comment-input-row');
+        section.innerHTML = '';
+        if (inputRow) section.appendChild(inputRow);
+
+        data.comments.forEach(comment => {
+            const item = document.createElement('div');
+            item.className = 'comment-item';
+
+            let modBadge = '';
+            if (comment.moderation_status === 'flagged') {
+                modBadge = '<span class="mod-badge flagged">⚠️ Under Review</span>';
+            }
+
+            item.innerHTML = `
+                <img src="${escapeAttr(comment.avatar)}" alt="User"/>
+                <div class="comment-bubble">
+                    <div class="comment-author">${escapeHtml(comment.author)}</div>
+                    <div class="comment-text">${escapeHtml(comment.content)}</div>
+                    ${modBadge}
+                </div>`;
+            section.appendChild(item);
+        });
+
+    } catch (err) {
+        console.error('Load comments error:', err);
+        showToast('Failed to load comments', 'error');
+    }
+}
 
 function toggleComments(btn) {
-  const card = btn.closest('.post-card');
-  const section = card.querySelector('.comment-section');
-  if (section) {
+    const card = btn.closest('.post-card');
+    const section = card.querySelector('.comment-section');
+    if (!section) return;
+
     const isHidden = section.style.display === 'none' || !section.style.display;
     section.style.display = isHidden ? 'block' : 'none';
-    if (isHidden) section.querySelector('input').focus();
-  }
+
+    if (isHidden) {
+        const input = section.querySelector('input');
+        if (input) input.focus();
+        const postId = card.dataset.postId;
+        if (postId) loadComments(postId, section);
+    }
 }
 
 function addComment(btn) {
-  const wrap = btn.closest('.comment-input-wrap');
-  const input = wrap.querySelector('input');
-  const text = input.value.trim();
-  
-  if (!text) {
-    showToast('Write something first!');
-    return;
-  }
-  
-  // Get post ID from the card
-  const card = btn.closest('.post-card');
-  const likeBtn = card.querySelector('[data-post-id]');
-  const postId = likeBtn ? likeBtn.dataset.postId : null;
-  
-  if (!postId) {
-    showToast('Error: Post ID not found');
-    return;
-  }
-  
-  // Disable button while saving
-  btn.disabled = true;
-  const originalIcon = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-  
-  // Send comment to backend with AI moderation
-  fetch('../api/users/interactions/add-comments.php', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ post_id: parseInt(postId, 10) })
-})
-    .then(async r => {
-      const raw = await r.text();
-      try {
-        return JSON.parse(raw);
-      } catch {
-        console.error('add-comments non-JSON response:', raw);
-        throw new Error('Server returned an invalid response for comments');
-      }
-    })
-    .then(res => {
-      if (!res || !res.success) {
-        throw new Error(res?.message || 'Failed to add comment');
-      }
+    const wrap = btn.closest('.comment-input-wrap');
+    const input = wrap.querySelector('input');
+    const text = input.value.trim();
 
-      
-      // Show warning if moderated
-      if (res.warning) {
-        showToast(res.warning, 'warning');
-      } else {
-        showToast('Comment added! 💬');
-      }
-      
-      // Clear input
-      input.value = '';
-      
-      // Add comment to DOM only if it's not removed
-      if (res.moderation_status !== 'removed') {
+    if (!text) {
+        showToast('Write something first!', 'warning');
+        return;
+    }
+
+    const card = btn.closest('.post-card');
+    const postId = card?.dataset?.postId;
+
+    if (!postId) {
+        showToast('Error: Post ID not found', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    const originalIcon = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('../api/users/interactions/add-comments.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            post_id: parseInt(postId, 10),
+            content: text
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (!res?.success) throw new Error(res?.error || 'Failed to add comment');
+
+        showToast('Comment added!');
+        input.value = '';
+
         const section = btn.closest('.comment-section');
-        const item = document.createElement('div');
-        item.className = 'comment-item';
-        
-        // Add moderation badge if flagged
-        let modBadge = '';
-        if (res.moderation_status === 'flagged') {
-          modBadge = '<span class="mod-badge flagged" title="This comment is flagged for review">⚠️ Under Review</span>';
+        loadComments(postId, section);
+
+        const commentBtn = card.querySelector('.reaction-btn:has(i.fa-comment)');
+        if (commentBtn) {
+            const span = commentBtn.querySelector('span');
+            if (span) span.textContent = String(res.comment_count || 0);
         }
-        
-        item.innerHTML = `
-          <img src="${escapeAttr(res.avatar)}" alt="User"/>
-          <div class="comment-bubble">
-            <div class="comment-author">${escapeHtml(res.author)}</div>
-            <div class="comment-text">${escapeHtml(res.text)}</div>
-            ${modBadge}
-          </div>`;
-        section.appendChild(item);
-      }
-      
-      // Update comment count
-      const commentBtn = card.querySelector('.reaction-btn:has(i.fa-comment)');
-      if (commentBtn) {
-        const span = commentBtn.querySelector('span');
-        if (span) span.textContent = String(res.comment_count || 0);
-      }
     })
     .catch(err => {
-      console.error('Comment error:', err);
-      showToast('Failed to add comment');
+        console.error('Comment error:', err);
+        showToast('Failed to add comment', 'error');
     })
     .finally(() => {
-      btn.disabled = false;
-      btn.innerHTML = originalIcon;
+        btn.disabled = false;
+        btn.innerHTML = originalIcon;
     });
 }
 
-// Expose for onclick handlers in main-feed.html
-window.openPostModal = function openPostModal(prefill) {
-  const ta = document.getElementById('modalPostText');
-  if (ta) ta.value = prefill || '';
-  document.getElementById('postModal').classList.add('show');
-  if (ta) ta.focus();
-  
-  // Add image preview listener
-  const fileInput = document.getElementById('modalPostImage');
-  if (fileInput) {
-    fileInput.onchange = function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        console.log('Image selected:', file.name, file.size, file.type);
-      }
-    };
-  }
+/*
+|--------------------------------------------------------------------------
+| CREATE POST
+|--------------------------------------------------------------------------
+*/
+
+function openPostModal(prefill) {
+    const ta = document.getElementById('modalPostText');
+    if (ta) ta.value = prefill || '';
+    document.getElementById('postModal').classList.add('show');
+    if (ta) ta.focus();
 }
 
 function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('show');
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
 }
-
 
 function submitPost(e) {
-  // Prevent modal overlay click/propagation edge cases
-  if (e && typeof e.preventDefault === 'function') e.preventDefault();
-  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-  const ta = document.getElementById('modalPostText');
-  const text = ta ? ta.value.trim() : '';
-  const fileInput = document.getElementById('modalPostImage');
-  const hasFile = !!(fileInput && fileInput.files && fileInput.files[0]);
-  
-  console.log('submitPost called:', { text: text.length, hasFile });
-  
-  if (!text && !hasFile) { 
-    showToast('Write something or attach a photo/file first!'); 
-    return; 
-  }
+    const ta = document.getElementById('modalPostText');
+    const text = ta ? ta.value.trim() : '';
+    const fileInput = document.getElementById('modalPostImage');
+    const hasFile = !!(fileInput && fileInput.files && fileInput.files[0]);
 
-  // Disable button while saving (always use the real modal submit button)
-  const btn = document.querySelector('#postModal .btn-primary');
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
-  }
+    if (!text && !hasFile) {
+        showToast('Write something or attach a photo first!', 'warning');
+        return;
+    }
 
-  const form = new FormData();
-  form.append('content', text);
+    const btn = document.querySelector('#postModal .btn-primary');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+    }
 
-  // Backend fallback: include explicit user_id if the JS auth layer exposes it.
-  // create-post.php supports: $_SESSION['user_id'] OR $_POST['user_id']
-  // getCurrentUserId() may return strings; ensure we append a trimmed value.
-  const uid = getCurrentUserId();
-  const trimmedUid = uid != null ? String(uid).trim() : '';
-  // If auth flow never sets session cookies, fall back to localStorage currentUserId.
-  const lsFallback = (localStorage.getItem('currentUserId') || localStorage.getItem('user_id') || localStorage.getItem('userId'));
-  const finalUid = trimmedUid || (lsFallback != null ? String(lsFallback).trim() : '');
-  console.log('submitPost user_id fallback:', finalUid || null);
+    const form = new FormData();
+    form.append('content', text);
 
-  // Hard: ALWAYS send something if we can find an id.
-  // Backend returns 401 only when user_id is empty.
-  const userIdToSend = finalUid || (lsFallback != null ? String(lsFallback).trim() : '') || '';
-  if (!userIdToSend) {
-    console.warn('submitPost: missing user_id in client; dumping candidates', {
-      uid: uid,
-      trimmedUid: trimmedUid,
-      lsFallback
-    });
-  }
-  // Backend uses session auth now; do not send user_id from client.
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        form.append('image', fileInput.files[0]);
+    }
 
+    fetch('../api/users/posts/create-post.php', {
+        method: 'POST',
+        credentials: 'include',
+        body: form
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data || !data.success) {
+            throw new Error(data?.error || 'Create failed');
+        }
 
-
-  // Add image file if selected
-  if (fileInput && fileInput.files && fileInput.files[0]) {
-    console.log('Image file:', fileInput.files[0].name, fileInput.files[0].size);
-    form.append('image', fileInput.files[0]);
-  }
-
-  console.log('Sending POST to create-post.php...');
-
-fetch('../api/users/posts/create-post.php', {
-    method: 'POST',
-    credentials: 'include',
-    body: form
-})
-    .then(async r => {
-      console.log('Response status:', r.status);
-      const text = await r.text();
-      console.log('Raw create-post response:', text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (err) {
-        console.error("INVALID JSON RESPONSE:", text);
-        throw new Error("Invalid JSON response from create-post API");
-      }
-
-      if (!data || !data.success) {
-        throw new Error(data?.error || 'Create failed - unknown error');
-      }
-
-      if (data.warning) {
-        showToast(data.warning, 'warning');
-      } else {
-        showToast('Post shared! 🎉');
-      }
-
-     closeModal('postModal');
-
- if (ta) ta.value = '';
- if (fileInput) fileInput.value = '';
-
-console.log('Reloading page...');
-window.location.reload();
+        showToast('Post created!');
+        closeModal('postModal');
+        if (ta) ta.value = '';
+        if (fileInput) fileInput.value = '';
+        window.location.reload();
     })
     .catch(err => {
-      console.error('Post creation error:', err);
-      showToast('Error: ' + err.message, 'error');
+        console.error('Post creation error:', err);
+        showToast('Error: ' + err.message, 'error');
     })
     .finally(() => {
-      console.log('submitPost finally - re-enabling button');
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = '+ Create Post';
-      }
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '+ Create Post';
+        }
     });
 }
 
-
-
+/*
+|--------------------------------------------------------------------------
+| REPORT POST
+|--------------------------------------------------------------------------
+*/
 
 function openReportModal(el) {
-  closeOptions(el);
-  document.getElementById('reportModal').classList.add('show');
+    closeOptions(el);
+    document.getElementById('reportModal').classList.add('show');
 }
 
 function submitReport() {
-  closeModal('reportModal');
-  showToast('Post reported. Thank you!');
+    const reason = document.getElementById('reportReason')?.value?.trim();
+    if (!reason) {
+        showToast('Please provide a reason', 'warning');
+        return;
+    }
+
+    const postId = window.__pendingReportPostId;
+    if (!postId) {
+        showToast('Error: No post selected', 'error');
+        return;
+    }
+
+    fetch('../api/users/posts/post-actions.php', {
+        credentials: 'include',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            action: 'report',
+            post_id: postId,
+            reason: reason
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showToast('Post reported. Thank you!');
+            closeModal('reportModal');
+        } else {
+            showToast(res.error || 'Report failed', 'error');
+        }
+    })
+    .catch(() => showToast('Report failed', 'error'));
 }
+
+/*
+|--------------------------------------------------------------------------
+| SHARE POST
+|--------------------------------------------------------------------------
+*/
 
 let _sharePostText = '';
+
 function openShareModal(btn) {
-  const card = btn.closest('.post-card');
-  const postId = card?.dataset?.postId;
-  // store selected post for submitShare
-  window.__pendingSharePostId = postId || null;
+    const card = btn.closest('.post-card');
+    const postId = card?.dataset?.postId;
+    window.__pendingSharePostId = postId || null;
 
-  const body = card.querySelector('.post-body p');
-  _sharePostText = body ? body.innerText : '';
+    const body = card.querySelector('.post-body p');
+    _sharePostText = body ? body.innerText : '';
 
-  const preview = document.getElementById('sharePostPreview');
-  if (preview) preview.textContent = _sharePostText.length > 80 ? _sharePostText.slice(0, 80) + '...' : _sharePostText;
+    const preview = document.getElementById('sharePostPreview');
+    if (preview) preview.textContent = _sharePostText.length > 80 ? _sharePostText.slice(0, 80) + '...' : _sharePostText;
 
-  // reset textarea
-  const ta = document.getElementById('shareText');
-  if (ta) ta.value = '';
+    const ta = document.getElementById('shareText');
+    if (ta) ta.value = '';
 
-  document.getElementById('shareModal').classList.add('show');
+    document.getElementById('shareModal').classList.add('show');
 }
-
 
 function submitShare() {
-  closeModal('shareModal');
-  const text = document.getElementById('shareText')?.value?.trim() || '';
-  if (!text) {
-    showToast('Write something to share first!');
-    return;
-  }
+    closeModal('shareModal');
+    const text = document.getElementById('shareText')?.value?.trim() || '';
+    if (!text) {
+        showToast('Write something to share first!', 'warning');
+        return;
+    }
 
-  // If you have a backend endpoint later for sharing, wire it here.
-  // For now, treat share as adding a comment.
-  showToast('Shared! 💡');
-  if (typeof window.__pendingSharePostId !== 'undefined' && window.__pendingSharePostId) {
+    if (!window.__pendingSharePostId) {
+        showToast('Error: No post selected', 'error');
+        return;
+    }
+
     const postId = window.__pendingSharePostId;
-    const commentWrap = document.querySelector(`.post-card[data-post-id="${postId}"] .comment-input-wrap input`);
-    // Fallback: just send to API (same moderation pipeline as comments)
-   fetch(`../api/users/interactions/add-comments.php`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        post_id: parseInt(postId, 10),
-        text: text
-      })
+    showToast('Sharing...');
+
+    fetch('../api/users/posts/share-post.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            post_id: parseInt(postId, 10),
+            comment: text
+        })
     })
-      .then(async r => {
-        const raw = await r.text();
-        return JSON.parse(raw);
-      })
-      .then(res => {
-        if (res?.warning) showToast(res.warning, 'warning');
-        // Update comment count if present
-        const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
-        const commentBtn = card?.querySelector('.reaction-btn:has(i.fa-comment)');
-        if (commentBtn) {
-          const span = commentBtn.querySelector('span');
-          if (span) span.textContent = String(res.comment_count || 0);
-        }
-        // Optionally render comment
-        if (res?.moderation_status !== 'removed') {
-          const section = card?.querySelector('.comment-section');
-          if (section) {
-            const item = document.createElement('div');
-            item.className = 'comment-item';
-            item.innerHTML = `
-              <img src="${escapeAttr(res.avatar)}" alt="User"/>
-              <div class="comment-bubble">
-                <div class="comment-author">${escapeHtml(res.author)}</div>
-                <div class="comment-text">${escapeHtml(res.text)}</div>
-                ${res.moderation_status === 'flagged' ? '<span class="mod-badge flagged" title="This comment is flagged for review">⚠️ Under Review</span>' : ''}
-              </div>`;
-            section.appendChild(item);
-          }
-        }
-      })
-      .catch(err => {
-        console.error('Share(comment) error:', err);
-        showToast('Failed to share');
-      });
-  }
+    .then(r => r.json())
+    .then(res => {
+        if (!res?.success) throw new Error(res?.error || 'Share failed');
+        showToast(res.message || 'Post shared!');
+        setTimeout(() => window.location.reload(), 500);
+    })
+    .catch(err => {
+        console.error('Share error:', err);
+        showToast('Failed to share', 'error');
+    });
 }
 
+/*
+|--------------------------------------------------------------------------
+| REQUEST TO ANNOUNCE
+|--------------------------------------------------------------------------
+*/
+
+function openAnnounceModal(el) {
+    closeOptions(el);
+    const modal = document.getElementById('announceModal');
+    if (modal) modal.classList.add('show');
+
+    const card = el.closest('.post-card');
+    window.__pendingAnnouncePostId = card?.dataset?.postId || null;
+}
+
+function submitAnnounceRequest() {
+    const reason = document.getElementById('announceReason')?.value?.trim();
+    if (!reason) {
+        showToast('Please provide a reason', 'warning');
+        return;
+    }
+
+    const postId = window.__pendingAnnouncePostId;
+    if (!postId) {
+        showToast('Error: No post selected', 'error');
+        return;
+    }
+
+    fetch('../api/users/posts/post-actions.php', {
+        credentials: 'include',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            action: 'announce',
+            post_id: postId,
+            reason: reason
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showToast('Announcement request submitted!');
+            closeModal('announceModal');
+        } else {
+            showToast(res.error || 'Request failed', 'error');
+        }
+    })
+    .catch(() => showToast('Request failed', 'error'));
+}
+
+/*
+|--------------------------------------------------------------------------
+| ARCHIVE POST
+|--------------------------------------------------------------------------
+*/
+
+function archivePost(el) {
+    const card = el.closest('.post-card');
+    if (!card) return;
+
+    card.style.transition = 'opacity 0.28s, transform 0.28s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-8px)';
+
+    setTimeout(() => card.remove(), 290);
+    showToast('Post archived.');
+    closeOptions(el);
+}
+
+/*
+|--------------------------------------------------------------------------
+| CREATE POST CARD
+|--------------------------------------------------------------------------
+*/
 
 function createPostCard(post) {
     const card = document.createElement('div');
     card.className = 'post-card';
-    
-    // Use post_id as the ID
+
     const postId = post.post_id || post.id;
-    const avatar = post.profile_picture || 'http://localhost/assets/default.png';
+    const avatar = post.profile_picture || '../../assets/default.jpg';
     const author = post.full_name || 'Unknown';
     const content = post.content || '';
     const image = post.image || post.file_url;
     const likeCount = post.like_count || 0;
     const commentCount = post.comment_count || 0;
     const userLiked = post.user_liked || false;
-    
+
+    // Shared post handling
+    let sharedHeader = '';
+    let sharedBody = '';
+
+    if (post.is_shared && post.shared_by) {
+        sharedHeader = `
+            <div class="shared-header">
+                <i class="fas fa-share"></i>
+                <span>Shared by <strong>${escapeHtml(post.shared_by.name)}</strong></span>
+            </div>
+        `;
+
+        if (post.original_post) {
+            sharedBody = `
+                <div class="shared-original">
+                    <div class="shared-original-header">
+                        <img src="${escapeAttr(post.shared_by.avatar)}" alt="User" class="shared-avatar"/>
+                        <span class="shared-name">${escapeHtml(post.shared_by.name)}</span>
+                        <span class="shared-time">${escapeHtml(post.original_post.created_at)}</span>
+                    </div>
+                    <p class="shared-content">${escapeHtml(post.original_post.content)}</p>
+                    ${post.original_post.file_url ? `<img src="${escapeAttr(post.original_post.file_url)}" alt="Shared image" class="shared-image"/>` : ''}
+                </div>
+            `;
+        }
+    }
+
     card.dataset.postId = postId;
-    
+
     card.innerHTML = `
+        ${sharedHeader}
         <div class="post-header">
             <img src="${escapeAttr(avatar)}" alt="User" class="post-avatar"/>
             <div class="post-meta">
@@ -498,6 +607,7 @@ function createPostCard(post) {
         <div class="post-body">
             <p>${escapeHtml(content)}</p>
             ${image ? `<div class="image-grid grid-1"><img src="${escapeAttr(image)}" alt="Post image" class="post-image"/></div>` : ''}
+            ${sharedBody}
         </div>
         <div class="post-footer">
             <button class="reaction-btn ${userLiked ? 'liked' : ''}" data-post-id="${postId}" onclick="toggleLike(this)">
@@ -513,7 +623,7 @@ function createPostCard(post) {
         </div>
         <div class="comment-section" style="display:none;">
             <div class="comment-input-row">
-                <img src="../assets/default.png" alt="User"/>
+                <img src="../../assets/default.jpg" alt="User"/>
                 <div class="comment-input-wrap">
                     <input type="text" placeholder="Write a comment..."/>
                     <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
@@ -521,313 +631,58 @@ function createPostCard(post) {
             </div>
         </div>
     `;
-    
+
     return card;
 }
 
-function escapeAttr(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+/*
+|--------------------------------------------------------------------------
+| LOAD FEED
+|--------------------------------------------------------------------------
+*/
+
+async function loadFeed(page = 1) {
+    try {
+        const res = await fetch('../api/users/posts/get-posts.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page })
+        });
+
+        let data;
+        try { data = await res.json(); }
+        catch { throw new Error('Invalid feed response'); }
+
+        if (!data?.success) throw new Error(data?.error || 'Failed to load feed');
+
+        const container = document.getElementById('feedPosts');
+        if (!container) return;
+
+        data.posts.forEach(post => {
+            container.appendChild(createPostCard(post));
+        });
+
+    } catch (err) {
+        console.error('Load feed error:', err);
+        showToast('Failed to load feed', 'error');
+    }
 }
 
+/*
+|--------------------------------------------------------------------------
+| INITIALIZE
+|--------------------------------------------------------------------------
+*/
 
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+document.addEventListener('DOMContentLoaded', () => {
+    loadFeed();
 
-// Close modals on overlay click
-document.addEventListener('click', function(e) {
-
-  ['postModal','reportModal','shareModal'].forEach(id => {
-
-    const el = document.getElementById(id);
-    if (el && e.target === el) el.classList.remove('show');
-  });
+    // Close modals on outside click
+    document.addEventListener('click', function(e) {
+        ['postModal', 'reportModal', 'shareModal', 'announceModal'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && e.target === el) el.classList.remove('show');
+        });
+    });
 });
-
-// ---- Navbar Search (FeedSpace) ----
-// Uses main/api/users/search/search.php
-
-function debounce(fn, ms) {
-  let t = null;
-  return function(...args) {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, args), ms);
-  };
-}
-
-function setNavSearchResults(html, show = true) {
-  const box = document.getElementById('navSearchResults');
-  if (!box) return;
-  box.innerHTML = html || '';
-  if (show) box.classList.add('show');
-  else box.classList.remove('show');
-}
-
-function renderNavSearchResults(data) {
-  const q = safeText(data?.query || '');
-  const results = data?.results || {};
-
-  const users = Array.isArray(results.users) ? results.users : [];
-  const posts = Array.isArray(results.posts) ? results.posts : [];
-  const communities = Array.isArray(results.communities) ? results.communities : [];
-
-  const makeItem = (icon, title, subtitle, href) => {
-    const safeTitle = safeText(title);
-    const safeSubtitle = safeText(subtitle);
-    const cls = href ? 'nav-search-item link' : 'nav-search-item';
-    const aStart = href ? `<a href="${href}">` : '';
-    const aEnd = href ? `</a>` : '';
-    return `
-      <div class="${cls}" role="option">
-        ${aStart}
-          <div class="nav-search-item-icon"><i class="${icon}"></i></div>
-          <div class="nav-search-item-text">
-            <div class="nav-search-item-title">${safeTitle}</div>
-            <div class="nav-search-item-subtitle">${safeSubtitle}</div>
-          </div>
-        ${aEnd}
-      </div>
-    `;
-  };
-
-  let html = '';
-
-  if (!users.length && !posts.length && !communities.length) {
-    html = `<div class="nav-search-empty">No results for <b>${q}</b>.</div>`;
-    return html;
-  }
-
-  if (users.length) {
-    html += `<div class="nav-search-section">People</div>`;
-    users.slice(0, 5).forEach(u => {
-      const id = u?.id;
-      const name = u?.name || '';
-      const href = id ? `profile.html?user_id=${encodeURIComponent(id)}` : null;
-      html += makeItem('fas fa-user', name, u?.bio ? u.bio : `User #${id}`, href);
-    });
-  }
-
-  if (posts.length) {
-    html += `<div class="nav-search-section">Posts</div>`;
-    posts.slice(0, 5).forEach(p => {
-      const id = p?.id;
-      const content = (p?.content || '').toString().trim();
-      const title = content.length > 60 ? content.slice(0, 60) + '…' : content;
-      // No dedicated post page in repo; route to feed and prefill query.
-      const href = id ? `feed-view.php?q=${encodeURIComponent(title)}` : null;
-      html += makeItem('fas fa-file-alt', title || `Post #${id}`, `Post ID: ${id}`, href);
-    });
-  }
-
-  if (communities.length) {
-    html += `<div class="nav-search-section">Communities</div>`;
-    communities.slice(0, 5).forEach(c => {
-      const id = c?.id;
-      const name = c?.name || '';
-      const href = id ? `community-page.html?community_id=${encodeURIComponent(id)}` : null;
-      html += makeItem('fas fa-users', name, `${c?.member_count ?? 0} members`, href);
-    });
-  }
-
-  return html;
-}
-
-async function performNavSearch(q) {
-  const query = String(q ?? '').trim();
-  if (query.length < 2) {
-    setNavSearchResults('', false);
-    return;
-  }
-
-  try {
-    const url = new URL('../api/users/search/search.php', window.location.href);
-// console.log('Nav search request:', url.toString());
-    // console.log('Nav search query:', query);
-    // console.log('Nav search response status:', res.status);
-    // Debug: show request URL to help diagnose backend errors
-    // console.log('Nav search URL:', url.toString());
-    url.searchParams.set('q', query);
-    url.searchParams.set('type', 'all');
-    url.searchParams.set('limit', '10');
-
-    const res = await fetch(url.toString(), { credentials: 'same-origin' });
-    const rawText = await res.text();
-    let data;
-    try { data = JSON.parse(rawText); }
-    catch(e){
-      console.error('Nav search non-JSON response:', { status: res.status, url: url.toString(), rawText: rawText.slice(0, 1000) });
-      throw new Error('Non-JSON response from search API');
-    }
-
-    if (!data?.success) {
-      setNavSearchResults(`<div class="nav-search-empty">Search failed.</div>`, true);
-      return;
-    }
-
-    const html = renderNavSearchResults(data);
-    setNavSearchResults(html, true);
-  } catch (e) {
-    console.error('Nav search error:', e);
-    setNavSearchResults(`<div class="nav-search-empty">Search error.</div>`, true);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  const input = document.getElementById('navSearchInput');
-  const results = document.getElementById('navSearchResults');
-
-  if (!input || !results) return;
-
-  const doSearch = debounce((value) => performNavSearch(value), 220);
-
-  input.addEventListener('input', function() {
-    doSearch(this.value);
-  });
-
-  document.addEventListener('keydown', function(ev) {
-    if (ev.key === 'Escape') {
-      setNavSearchResults('', false);
-      input.blur();
-    }
-  });
-
-  // If search query is present in URL (?q=...), run once.
-  const urlParams = new URLSearchParams(window.location.search);
-  const q = urlParams.get('q');
-  if (q && String(q).trim()) {
-    input.value = q;
-    performNavSearch(q);
-  }
-});
-
-// Add these functions to feed.js
-
-function openAnnounceModal(el) {
-    closeOptions(el);
-    const modal = document.getElementById('announceModal');
-    if (modal) modal.classList.add('show');
-}
-
-function submitAnnounceRequest() {
-    const reason = document.getElementById('announceReason')?.value?.trim();
-    if (!reason) {
-        showToast('Please provide a reason for announcement request', 'warning');
-        return;
-    }
-    
-    showToast('Announcement request submitted for review!', 'success');
-    closeModal('announceModal');
-    
-    // Clear the textarea
-    if (document.getElementById('announceReason')) {
-        document.getElementById('announceReason').value = '';
-    }
-}
-
-function archivePost(el) {
-    const card = el.closest('.post-card');
-    if (!card) return;
-    
-    card.style.transition = 'opacity 0.28s, transform 0.28s';
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(-8px)';
-    
-    setTimeout(() => card.remove(), 290);
-    showToast('Post archived.');
-    closeOptions(el);
-}
-
-// Fix addComment function - it was calling wrong endpoint
-function addComment(btn) {
-    const wrap = btn.closest('.comment-input-wrap');
-    const input = wrap.querySelector('input');
-    const text = input.value.trim();
-    
-    if (!text) {
-        showToast('Write something first!');
-        return;
-    }
-    
-    const card = btn.closest('.post-card');
-    const likeBtn = card.querySelector('[data-post-id]');
-    const postId = likeBtn ? likeBtn.dataset.postId : null;
-    
-    if (!postId) {
-        showToast('Error: Post ID not found');
-        return;
-    }
-    
-    btn.disabled = true;
-    const originalIcon = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    
-    // Fix: Use add-comments.php endpoint instead of toggle-post-like.php
-    fetch('../api/users/interactions/add-comments.php', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            post_id: parseInt(postId, 10),
-            text: text 
-        })
-    })
-    .then(async r => {
-        const raw = await r.text();
-        try {
-            return JSON.parse(raw);
-        } catch {
-            console.error('add-comments non-JSON response:', raw);
-            throw new Error('Server returned an invalid response for comments');
-        }
-    })
-    .then(res => {
-        if (!res || !res.success) {
-            throw new Error(res?.message || 'Failed to add comment');
-        }
-        
-        if (res.warning) {
-            showToast(res.warning, 'warning');
-        } else {
-            showToast('Comment added! 💬');
-        }
-        
-        input.value = '';
-        
-        if (res.moderation_status !== 'removed') {
-            const section = btn.closest('.comment-section');
-            const item = document.createElement('div');
-            item.className = 'comment-item';
-            
-            let modBadge = '';
-            if (res.moderation_status === 'flagged') {
-                modBadge = '<span class="mod-badge flagged" title="This comment is flagged for review">⚠️ Under Review</span>';
-            }
-            
-            item.innerHTML = `
-                <img src="${escapeAttr(res.avatar)}" alt="User"/>
-                <div class="comment-bubble">
-                    <div class="comment-author">${escapeHtml(res.author)}</div>
-                    <div class="comment-text">${escapeHtml(res.text)}</div>
-                    ${modBadge}
-                </div>`;
-            section.appendChild(item);
-        }
-        
-        const commentBtn = card.querySelector('.reaction-btn:has(i.fa-comment)');
-        if (commentBtn) {
-            const span = commentBtn.querySelector('span');
-            if (span) span.textContent = String(res.comment_count || 0);
-        }
-    })
-    .catch(err => {
-        console.error('Comment error:', err);
-        showToast('Failed to add comment: ' + err.message);
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalIcon;
-    });
-}
-
-
-

@@ -55,3 +55,61 @@ function confirmDelete() {
     showToast('Profile deletion requested.');
   }
 }
+
+// ---- Like Toggle (DB-backed) ----
+// Uses session user_id (backend validates auth).
+async function toggleLike(btn) {
+  const postCard = btn.closest('.post-card');
+  const postId = btn?.dataset?.postId || postCard?.dataset?.postId;
+  if (!postId) {
+    showToast('Error: Post ID not found', 'error');
+    return;
+  }
+
+  // prevent double click
+  if (btn.disabled) return;
+  btn.disabled = true;
+
+  const span = btn.querySelector('span');
+  const icon = btn.querySelector('i');
+  const oldIconClass = icon ? icon.className : '';
+  const oldCount = span ? parseInt(span.textContent) || 0 : 0;
+
+  try {
+    const res = await fetch('../api/users/interactions/toggle-post-like.php', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: parseInt(postId, 10) })
+    });
+
+    const raw = await res.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error('Invalid JSON from server');
+    }
+
+    if (!data?.success) throw new Error(data?.error || 'Failed to toggle like');
+
+    // Update UI from server response
+    const isLiked = !!data.is_liked;
+    const newCount = Number(data.likesCount ?? data.like_count ?? oldCount);
+
+    btn.classList.toggle('liked', isLiked);
+    if (icon) {
+      icon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+    }
+    if (span) span.textContent = String(newCount);
+  } catch (err) {
+    console.error('toggleLike error:', err);
+    // rollback icon class/count
+    if (icon) icon.className = oldIconClass;
+    if (span) span.textContent = String(oldCount);
+    showToast('Failed to like: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+

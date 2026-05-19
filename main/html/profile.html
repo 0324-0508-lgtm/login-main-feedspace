@@ -336,11 +336,11 @@ textarea.ep-input { resize: vertical; min-height: 70px; }
 
   <nav class="sidebar-nav">
     <!-- FIXED: was main/html/... — profile.html is already in main/ -->
-    <a href="html/feed-view.php"><i class="fas fa-home"></i><span>Feed</span></a>
-    <a href="html/announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-    <a href="html/communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
-    <a href="html/help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
-    <a href="html/about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
+    <a href="feed-view.php"><i class="fas fa-home"></i><span>Feed</span></a>
+    <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+    <a href="communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
+    <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
+    <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
   </nav>
 
   <div class="sidebar-bottom">
@@ -523,8 +523,43 @@ function toggleComments(btn) {
 }
 
 function openShareModal(btn) {
-  showToast('Link copied to clipboard!');
+  // Profile page currently doesn't include a share modal DOM.
+  // Make the share button functional by calling the share endpoint directly.
+  const card = btn.closest('.post-card');
+  const postId = card?.dataset?.postId;
+  if (!postId) {
+    showToast('Error: Post ID not found', 'error');
+    return;
+  }
+
+  showToast('Sharing...');
+
+  fetch('../api/users/interactions/share-post.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      post_id: parseInt(postId, 10),
+      comment: ''
+    })
+  })
+  .then(async r => {
+    const raw = await r.text();
+    try { return JSON.parse(raw); }
+    catch { throw new Error('Invalid JSON from server'); }
+  })
+  .then(res => {
+    if (!res?.success) throw new Error(res?.error || 'Share failed');
+    showToast(res.message || 'Post shared!');
+    setTimeout(() => window.location.reload(), 300);
+  })
+  .catch(err => {
+    console.error('Share error:', err);
+    showToast('Failed to share: ' + err.message, 'error');
+  });
 }
+
+
 
 function addComment(btn, postId) {
   var input = btn.closest('.comment-input-wrap').querySelector('input');
