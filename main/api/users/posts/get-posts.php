@@ -130,3 +130,16 @@ try {
     error_log('Get posts error: ' . $e->getMessage());
     echo json_encode(['success' => false, 'error' => 'Failed to load posts']);
 }
+
+// After getting $user_id, check if profile-specific posts requested
+$profileUserId = $_GET['user_id'] ?? null;
+
+if ($profileUserId) {
+    // Profile page: only this user's posts
+    $whereClause = "WHERE p.user_id = ? AND p.is_deleted = 0 ...";
+    $params = [$profileUserId, $limit, $offset];
+} else {
+    // Main feed: all posts
+    $whereClause = "WHERE p.is_deleted = 0 ...";
+    $params = [$limit, $offset];
+}

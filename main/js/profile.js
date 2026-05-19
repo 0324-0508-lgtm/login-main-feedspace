@@ -1,602 +1,221 @@
-// ============================================================
-//  profile.js — Dynamic profile page logic for FeedSpace
-//
-//  Reads the logged-in user_id from localStorage (set by
-//  auth.js after OTP verification), then:
-//    1. Fetches profile data from get-profile.php
-//    2. Renders avatar, banner, name, stats, bio
-//    3. Loads and renders the user's posts
-//    4. Handles Edit Profile modal with save-to-backend
-//    5. Handles avatar & cover-photo uploads
-// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  var userIdEl = document.getElementById('profile-user-id');
+  var userId = userIdEl ? userIdEl.dataset.userId : (sessionStorage.getItem('user_id') || localStorage.getItem('user_id'));
 
-// ── Constants ────────────────────────────────────────────────
-const API_BASE = 'api/users/user/uploads/profiles/';
-const DEFAULT_AVATAR  = 'https://api.dicebear.com/7.x/adventurer/svg?seed=Default';
-const DEFAULT_COVER   = null; // CSS gradient fallback used when null
-
-// ── State ────────────────────────────────────────────────────
-let currentUserId   = null;   // logged-in user
-let profileUserId   = null;   // profile being viewed
-let currentPage     = 1;
-let totalPages      = 1;
-let isLoadingPosts  = false;
-let profileData     = null;
-
-// ── Helpers ──────────────────────────────────────────────────
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function getStoredUserId() {
-  return localStorage.getItem('currentUserId') || null;
-}
-
-function getUserIdFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('user_id') || null;
-}
-
-function resolveAvatarUrl(url) {
-  if (!url) return DEFAULT_AVATAR;
-  if (url.startsWith('http')) return url;
-  return url;
-}
-
-// ── Init ─────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
-  currentUserId  = getStoredUserId();
-  profileUserId  = getUserIdFromUrl() || currentUserId;
-
-  if (!currentUserId) {
-    // Not logged in — redirect to login
-    window.location.href = '../index.html';
-    return;
-  }
-
-  loadProfile();
-
-  // Edit Profile modal — close on overlay click
-  const overlay = document.getElementById('editProfileModal');
-  if (overlay) {
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeEditModal();
-    });
-  }
-
-  // Avatar / banner file inputs (profile page header)
-  const avatarInput = document.getElementById('avatarFileInput');
-  if (avatarInput) {
-    avatarInput.addEventListener('change', function () {
-      if (this.files && this.files[0]) uploadProfilePic(this.files[0]);
-    });
-  }
-
-  const bannerInput = document.getElementById('bannerFileInput');
-  if (bannerInput) {
-    bannerInput.addEventListener('change', function () {
-      if (this.files && this.files[0]) uploadCoverPhoto(this.files[0]);
-    });
-  }
-
-  // Edit-modal inner avatar / banner inputs
-  const epAvatarInput = document.getElementById('epAvatarInput');
-  if (epAvatarInput) {
-    epAvatarInput.addEventListener('change', function () {
-      if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const preview = document.getElementById('epAvatarPreview');
-          if (preview) preview.src = e.target.result;
-        };
-        reader.readAsDataURL(this.files[0]);
-      }
-    });
-  }
-
-  const epBannerInput = document.getElementById('epBannerInput');
-  if (epBannerInput) {
-    epBannerInput.addEventListener('change', function () {
-      if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const preview = document.getElementById('epBannerPreview');
-          if (preview) preview.style.backgroundImage = `url('${e.target.result}')`;
-        };
-        reader.readAsDataURL(this.files[0]);
-      }
-    });
+  if (userId) {
+    loadProfilePosts(userId);
+  } else {
+    console.error('No user_id found');
+    var container = document.getElementById('profile-posts-container') || document.getElementById('posts-container');
+    if (container) {
+      container.innerHTML = '<p class="error">User ID not found. Please log in again.</p>';
+    }
   }
 });
 
-// ── Load Profile ─────────────────────────────────────────────
-async function loadProfile() {
-  applySkeleton(true);
+async function loadProfilePosts(userId, page) {
+    page = page || 1;
+    try {
+        var container = document.getElementById('profile-posts-container') || document.getElementById('posts-container');
+        if (!container) {
+            console.error('No posts container found');
+            return;
+        }
 
-  try {
-    const formData = new FormData();
-    formData.append('user_id', currentUserId);
-    formData.append('target_user_id', profileUserId);
-    formData.append('page', currentPage);
+        const response = await fetch(
+            '/login-main-feedspace/main/api/users/posts/get-profile-posts.php?user_id=' + userId + '&page=' + page
+        );
 
-    const res  = await fetch(API_BASE + 'get-profile.php', {
-      method: 'POST',
-      body: formData,
-    });
+        const text = await response.text();
 
-    if (res.status === 401) {
-      window.location.href = '../index.html';
-      return;
+        if (text.trim().startsWith('<')) {
+            console.error('Server returned HTML error:', text.substring(0, 500));
+            container.innerHTML = '<p class="error">Server error</p>';
+            throw new Error('Server error');
+        }
+
+        const data = JSON.parse(text);
+
+        if (data.success && data.posts) {
+            container.innerHTML = '';
+            data.posts.forEach(function(post) {
+                container.appendChild(buildPostCard(post));
+            });
+        } else if (data.posts && data.posts.length === 0) {
+            container.innerHTML = '<p class="no-posts">No posts yet.</p>';
+        }
+
+        return data;
+
+    } catch (error) {
+        console.error('Failed to load posts:', error);
+        var container = document.getElementById('profile-posts-container') || document.getElementById('posts-container');
+        if (container) {
+            container.innerHTML = '<p class="error">Failed to load posts. Please refresh.</p>';
+        }
     }
-
-    const data = await res.json();
-
-    if (!data.success) {
-      showToast(data.error || 'Failed to load profile');
-      return;
-    }
-
-    profileData = data.profile;
-    totalPages  = data.pagination.pages || 1;
-
-    renderProfile(data.profile);
-    renderPosts(data.posts);
-
-  } catch (err) {
-    console.error('Profile load error:', err);
-    showToast('Could not load profile. Please try again.');
-  } finally {
-    applySkeleton(false);
-  }
-}
-
-// ── Load More Posts ───────────────────────────────────────────
-async function loadMorePosts() {
-  if (isLoadingPosts || currentPage >= totalPages) return;
-  isLoadingPosts = true;
-  currentPage++;
-
-  try {
-    const formData = new FormData();
-    formData.append('user_id', currentUserId);
-    formData.append('target_user_id', profileUserId);
-    formData.append('page', currentPage);
-
-    const res  = await fetch(API_BASE + 'get-profile.php', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      appendPosts(data.posts);
-    }
-  } catch (err) {
-    currentPage--;
-    console.error('Load more posts error:', err);
-  } finally {
-    isLoadingPosts = false;
-  }
-}
-
-// ── Render Profile Header ─────────────────────────────────────
-function renderProfile(p) {
-  const isOwn = p.is_own_profile;
-
-  // Banner
-  const banner = document.getElementById('profileBanner');
-  if (banner) {
-    if (p.cover_photo_url) {
-      banner.style.backgroundImage = `url('${p.cover_photo_url}')`;
-      banner.style.backgroundSize  = 'cover';
-      banner.style.backgroundPosition = 'center';
-    }
-    // Only allow click-to-change for own profile
-    if (!isOwn) {
-      banner.style.cursor = 'default';
-      banner.onclick = null;
-    }
-  }
-
-  // Avatar
-  const avatarEl = document.getElementById('profileAvatar');
-  if (avatarEl) {
-    avatarEl.src = resolveAvatarUrl(p.profile_picture_url);
-    avatarEl.onerror = function () { this.src = DEFAULT_AVATAR; };
-    if (!isOwn) {
-      const wrap = document.getElementById('profileAvatar')?.closest('.profile-avatar-wrap');
-      if (wrap) { wrap.style.cursor = 'default'; wrap.onclick = null; }
-    }
-  }
-
-  // Name
-  const nameEl = document.getElementById('profileName');
-  if (nameEl) {
-    nameEl.innerHTML = `${escapeHtml(p.full_name)}<i class="fas fa-check-circle verified-badge"></i>`;
-  }
-
-  // Username / email
-  const usernameEl = document.getElementById('profileUsername');
-  if (usernameEl) {
-    usernameEl.textContent = p.email ? `@${p.email.split('@')[0]}` : `@${p.user_id}`;
-  }
-
-  // Stats
-  const statsEl = document.getElementById('profileStats');
-  if (statsEl) {
-    statsEl.innerHTML = `
-      <span data-stat="posts"><strong>${p.post_count || 0}</strong> Posts</span>
-      <span data-stat="communities"><strong>${p.community_count || 0}</strong> Communities</span>
-      <span data-stat="role"><strong>${escapeHtml(p.role || 'Student')}</strong></span>
-    `;
-  }
-
-  // Bio (if element exists)
-  const bioEl = document.getElementById('profileBio');
-  if (bioEl) {
-    bioEl.textContent = p.bio || '';
-  }
-
-  // College (if element exists)
-  const collegeEl = document.getElementById('profileCollege');
-  if (collegeEl) {
-    collegeEl.textContent = p.college || '';
-  }
-
-  // Show correct action button
-  const editBtn   = document.querySelector('.profile-edit-btn');
-  const followBtn = document.querySelector('.profile-follow-btn');
-
-  if (isOwn) {
-    if (editBtn)   editBtn.style.display   = 'inline-flex';
-    if (followBtn) followBtn.style.display = 'none';
-  } else {
-    if (editBtn)   editBtn.style.display   = 'none';
-    if (followBtn) followBtn.style.display = 'inline-flex';
-  }
-
-  // Populate navbar / sidebar
-  const navAvatar = document.getElementById('navbarAvatar');
-  const navName   = document.getElementById('navbarProfileName');
-  const sideAvatar = document.getElementById('sidebarAvatar');
-  const sideName   = document.getElementById('sidebarProfileName');
-
-  // For navbar/sidebar always show the LOGGED-IN user (currentUserId data).
-  // If viewing own profile, profileData IS the logged-in user.
-  if (isOwn) {
-    const avatarUrl = resolveAvatarUrl(p.profile_picture_url);
-    if (navAvatar)  { navAvatar.src  = avatarUrl; navAvatar.onerror  = () => { navAvatar.src  = DEFAULT_AVATAR; }; }
-    if (navName)    navName.textContent   = p.full_name || 'Profile';
-    if (sideAvatar) { sideAvatar.src = avatarUrl; sideAvatar.onerror = () => { sideAvatar.src = DEFAULT_AVATAR; }; }
-    if (sideName)   sideName.textContent  = p.full_name || 'Profile';
-  }
-}
-
-// ── Render Posts ──────────────────────────────────────────────
-function renderPosts(posts) {
-  const container = document.querySelector('.posts-container');
-  if (!container) return;
-
-  if (posts.length === 0 && currentPage === 1) {
-    container.innerHTML = `
-      <div class="no-posts">
-        <i class="fas fa-feather-alt"></i>
-        No posts yet.
-      </div>`;
-    return;
-  }
-
-  container.innerHTML = '';
-  appendPosts(posts);
-}
-
-function appendPosts(posts) {
-  const container = document.querySelector('.posts-container');
-  if (!container) return;
-
-  posts.forEach(post => {
-    const card = buildPostCard(post);
-    container.insertAdjacentHTML('beforeend', card);
-  });
-
-  // Lazy-load more posts when near the bottom
-  if (currentPage < totalPages) {
-    const sentinel = document.createElement('div');
-    sentinel.id = 'posts-sentinel';
-    sentinel.style.height = '1px';
-    container.appendChild(sentinel);
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        observer.disconnect();
-        loadMorePosts();
-      }
-    }, { threshold: 0.1 });
-    observer.observe(sentinel);
-  }
 }
 
 function buildPostCard(post) {
-  const isOwn   = (profileData && profileData.is_own_profile);
-  const name    = profileData ? escapeHtml(profileData.full_name) : 'User';
-  const avatar  = profileData ? resolveAvatarUrl(profileData.profile_picture_url) : DEFAULT_AVATAR;
-  const liked   = post.user_liked;
+  var card = document.createElement('div');
+  card.className = 'post-card';
+  card.dataset.postId = post.post_id;
 
-  const imageHtml = post.image
-    ? `<img src="${escapeHtml(post.image)}" class="post-image" alt="Post image" loading="lazy" onerror="this.style.display='none'"/>`
-    : '';
+  var name = escapeHtml(post.full_name || 'Unknown');
+  var avatar = post.profile_picture || '../assets/default.jpg';
+  var time = escapeHtml(post.created_at || '');
+  var content = escapeHtml(post.content || '');
+  var likes = post.like_count || 0;
+  var comments = post.comment_count || 0;
+  var liked = post.user_liked ? ' liked' : '';
+  var heart = post.user_liked ? 'fas' : 'far';
 
-  const optionsHtml = isOwn ? `
-    <div class="post-options">
-      <button class="post-options-btn" onclick="togglePostOptions(this)" title="Options">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
-      <div class="post-options-menu">
-        <div class="options-item" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit</div>
-        <div class="options-item" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-        <div class="options-item danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete</div>
-      </div>
-    </div>` : `
-    <div class="post-options">
-      <button class="post-options-btn" onclick="togglePostOptions(this)" title="Options">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
-      <div class="post-options-menu">
-        <div class="options-item" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-      </div>
-    </div>`;
+  var img = '';
+  if (post.image) {
+    img = '<div class="image-grid"><img src="' + escapeHtml(post.image) + '" class="post-image" onerror="this.style.display=\'none\'"></div>';
+  }
 
-  return `
-    <div class="post-card" data-post-id="${post.id}">
-      <div class="post-header">
-        <img src="${avatar}" class="post-avatar" alt="${name}"
-             onerror="this.src='${DEFAULT_AVATAR}'"/>
-        <div class="post-meta">
-          <div class="post-author">${name}</div>
-          <div class="post-time">${escapeHtml(post.created_at)}</div>
-        </div>
-        ${optionsHtml}
-      </div>
-      <div class="post-body">
-        <p>${escapeHtml(post.content || '')}</p>
-        ${imageHtml}
-      </div>
-      <div class="post-footer">
-        <button class="post-action-btn like-btn ${liked ? 'liked' : ''}"
-                data-post-id="${post.id}"
-                onclick="toggleLike(this)">
-          <i class="${liked ? 'fas' : 'far'} fa-heart"></i>
-          <span>${post.like_count || 0}</span>
-        </button>
-        <button class="post-action-btn" onclick="toggleComments(this)">
-          <i class="far fa-comment"></i>
-          <span>${post.comment_count || 0}</span>
-        </button>
-        <button class="post-action-btn" onclick="openShareModal(this)">
-          <i class="fas fa-share"></i>
-          <span>${post.share_count || 0}</span>
-        </button>
-      </div>
-      <div class="comment-section" style="display:none;">
-        <div class="comment-input-wrap">
-          <input type="text" placeholder="Write a comment…"/>
-          <button onclick="addComment(this, ${post.id})">Post</button>
-        </div>
-      </div>
-    </div>`;
+  var shared = '';
+  if (post.is_shared && post.original) {
+    var o = post.original;
+    var oName = escapeHtml(o.full_name || 'Unknown');
+    var oAvatar = o.profile_picture || '../assets/default.jpg';
+    var oTime = escapeHtml(o.created_at || '');
+    var oContent = escapeHtml(o.content || '');
+    var oImg = '';
+    if (o.image) {
+      oImg = '<div class="sp-image-wrap"><img src="' + escapeHtml(o.image) + '" class="sp-image" onerror="this.style.display=\'none\'"></div>';
+    }
+    shared = '<div class="shared-post-card"><div class="sp-header"><img src="' + oAvatar + '" class="sp-avatar" onerror="this.src=\'../assets/default.jpg\'"><div class="sp-meta"><span class="sp-author">' + oName + '</span><span class="sp-time">' + oTime + '</span></div></div><div class="sp-body"><p class="sp-content">' + nl2br(oContent) + '</p>' + oImg + '</div></div>';
+  }
+
+  card.innerHTML = '<div class="post-header"><img src="' + avatar + '" class="post-avatar" onerror="this.src=\'../assets/default.jpg\'"><div class="post-meta"><div class="post-author">' + name + '</div><div class="post-community">Community &middot; ' + time + '</div></div><button class="options-btn" onclick="toggleOptions(this)"><i class="fas fa-ellipsis-h"></i></button><div class="post-options-menu"><div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit</div><div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete</div><div class="post-option" onclick="reportPost(this)"><i class="fas fa-flag"></i> Report</div></div></div><div class="post-body"><p>' + nl2br(content) + '</p>' + shared + img + '</div><div class="post-footer"><button class="reaction-btn' + liked + '" data-post-id="' + post.post_id + '" onclick="doLike(this)"><i class="' + heart + ' fa-heart"></i> ' + likes + '</button><button class="reaction-btn" onclick="toggleComments(this)"><i class="fas fa-comment"></i> ' + comments + '</button><button class="reaction-btn" onclick="sharePost(this)"><i class="fas fa-share"></i> Share</button></div><div class="comment-section" style="display:none;"><div class="comment-input-row"><img src="../assets/default.jpg"><div class="comment-input-wrap"><input type="text" placeholder="Write a comment..."><button class="comment-send-btn" onclick="sendComment(this)"><i class="fas fa-paper-plane"></i></button></div></div></div>';
+
+  return card;
 }
 
-// ── Skeleton Loading ──────────────────────────────────────────
-function applySkeleton(on) {
-  const targets = [
-    document.getElementById('profileName'),
-    document.getElementById('profileUsername'),
-    document.getElementById('profileStats'),
-  ];
-  targets.forEach(el => {
-    if (!el) return;
-    if (on) {
-      el.classList.add('skeleton-pulse');
-      el._savedText = el.innerHTML;
-      el.innerHTML  = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    } else {
-      el.classList.remove('skeleton-pulse');
+function escapeHtml(t) {
+  var d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+function nl2br(s) {
+  return s.replace(/\n/g, '<br>');
+}
+
+function toggleOptions(btn) {
+  var m = btn.nextElementSibling;
+  if (m) m.classList.toggle('show');
+}
+
+function doLike(btn) {
+  var id = btn.dataset.postId;
+  var liked = btn.classList.contains('liked');
+  fetch('../api/users/posts/like-post.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'post_id=' + id + '&action=' + (liked ? 'unlike' : 'like')
+  })
+  .then(function(r){ return r.text(); })
+  .then(function(text) {
+    if (text.trim().startsWith('<')) {
+      console.error('Server error:', text.substring(0, 500));
+      throw new Error('Server returned HTML');
     }
+    return JSON.parse(text);
+  })
+  .then(function(res) {
+    if (res.success) {
+      btn.classList.toggle('liked');
+      var i = btn.querySelector('i');
+      var s = btn.querySelector('span') || btn.lastChild;
+      if (i) i.className = liked ? 'far fa-heart' : 'fas fa-heart';
+      var n = parseInt(s.textContent || s.nodeValue || 0);
+      s.textContent = ' ' + (liked ? n - 1 : n + 1);
+    }
+  })
+  .catch(function(err) {
+    console.error('Like failed:', err);
   });
-
-  const container = document.querySelector('.posts-container');
-  if (container && on && container.children.length === 0) {
-    container.innerHTML = '<div class="posts-loading"><i class="fas fa-spinner fa-spin"></i></div>';
-  }
 }
 
-// ── Edit Profile Modal ────────────────────────────────────────
-function openEditModal() {
-  if (!profileData) return;
-
-  // Pre-fill form fields
-  const epName = document.getElementById('epName');
-  const epUsername = document.getElementById('epUsername');
-  const epBio  = document.getElementById('epBio');
-
-  if (epName)     epName.value     = profileData.full_name || '';
-  if (epUsername) epUsername.value = profileData.email ? profileData.email.split('@')[0] : profileData.user_id;
-  if (epBio)      epBio.value      = profileData.bio || '';
-
-  // Pre-fill avatar preview
-  const epAvatar = document.getElementById('epAvatarPreview');
-  if (epAvatar) {
-    epAvatar.src = resolveAvatarUrl(profileData.profile_picture_url);
-    epAvatar.onerror = function () { this.src = DEFAULT_AVATAR; };
-  }
-
-  // Pre-fill banner preview
-  const epBanner = document.getElementById('epBannerPreview');
-  if (epBanner && profileData.cover_photo_url) {
-    epBanner.style.backgroundImage  = `url('${profileData.cover_photo_url}')`;
-    epBanner.style.backgroundSize   = 'cover';
-    epBanner.style.backgroundPosition = 'center';
-  }
-
-  document.getElementById('editProfileModal').classList.add('show');
+function toggleComments(btn) {
+  var card = btn.closest('.post-card');
+  var sec = card.querySelector('.comment-section');
+  if (sec) sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
 }
 
-function closeEditModal() {
-  document.getElementById('editProfileModal').classList.remove('show');
-}
-
-// ── Save Profile (name + bio) ─────────────────────────────────
-async function saveProfile() {
-  const epName = document.getElementById('epName');
-  const epBio  = document.getElementById('epBio');
-
-  const fullName  = (epName ? epName.value.trim() : '').split(' ');
-  const firstName = fullName[0] || '';
-  const lastName  = fullName.slice(1).join(' ') || '.';
-  const bio       = epBio ? epBio.value.trim() : '';
-
-  if (!firstName) {
-    showToast('Please enter a display name.');
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('user_id',    currentUserId);
-  formData.append('first_name', firstName);
-  formData.append('last_name',  lastName);
-  formData.append('bio',        bio);
-
-  // Include any newly selected avatar/banner files
-  const epAvatarFile = document.getElementById('epAvatarInput')?.files?.[0];
-  const epBannerFile = document.getElementById('epBannerInput')?.files?.[0];
-  if (epAvatarFile) formData.append('profile_picture', epAvatarFile);
-  if (epBannerFile) formData.append('cover_photo', epBannerFile);
-
-  try {
-    const res  = await fetch(API_BASE + 'update-profile.php', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      // Reflect changes immediately in the UI
-      const nameEl = document.getElementById('profileName');
-      if (nameEl) {
-        nameEl.innerHTML = `${escapeHtml(firstName + ' ' + lastName).trim()} <i class="fas fa-check-circle verified-badge"></i>`;
-      }
-      const bioEl = document.getElementById('profileBio');
-      if (bioEl) bioEl.textContent = bio;
-
-      // Update cached profile data
-      if (profileData) {
-        profileData.full_name  = (firstName + ' ' + lastName).trim();
-        profileData.bio        = bio;
-        if (data.profile_picture) profileData.profile_picture_url = '/main/api/users/user/uploads/profiles/' + data.profile_picture;
-        if (data.cover_photo)     profileData.cover_photo_url     = '/main/api/users/user/uploads/covers/'   + data.cover_photo;
-      }
-
-      closeEditModal();
-      showToast('Profile updated! ✨');
-    } else {
-      showToast(data.error || 'Update failed.');
+function sendComment(btn) {
+  var wrap = btn.closest('.comment-input-wrap');
+  var inp = wrap.querySelector('input');
+  var text = inp.value.trim();
+  if (!text) return;
+  var card = btn.closest('.post-card');
+  var id = card.dataset.postId;
+  fetch('../api/users/posts/add-comment.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'post_id=' + id + '&content=' + encodeURIComponent(text)
+  })
+  .then(function(r){ return r.text(); })
+  .then(function(text) {
+    if (text.trim().startsWith('<')) {
+      console.error('Server error:', text.substring(0, 500));
+      throw new Error('Server returned HTML');
     }
-  } catch (err) {
-    console.error('Save profile error:', err);
-    showToast('Could not save profile. Please try again.');
-  }
+    return JSON.parse(text);
+  })
+  .then(function(res) {
+    if (res.success) inp.value = '';
+  })
+  .catch(function(err) {
+    console.error('Comment failed:', err);
+  });
 }
 
-// ── Avatar upload (header click) ─────────────────────────────
-async function uploadProfilePic(file) {
-  const formData = new FormData();
-  formData.append('user_id', currentUserId);
-  formData.append('profile_picture', file);
-
-  try {
-    const res  = await fetch(API_BASE + 'update-profile-pic.php', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      const url = data.profile_picture || URL.createObjectURL(file);
-      const avatarEl = document.getElementById('profileAvatar');
-      if (avatarEl) avatarEl.src = url;
-      const navAvatar = document.getElementById('navbarAvatar');
-      if (navAvatar) navAvatar.src = url;
-      const sideAvatar = document.getElementById('sidebarAvatar');
-      if (sideAvatar) sideAvatar.src = url;
-      showToast('Profile picture updated!');
-    } else {
-      showToast(data.error || 'Upload failed.');
+function deletePost(btn) {
+  if (!confirm('Delete?')) return;
+  var card = btn.closest('.post-card');
+  var id = card.dataset.postId;
+  fetch('../api/users/posts/delete-post.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'post_id=' + id
+  })
+  .then(function(r){ return r.text(); })
+  .then(function(text) {
+    if (text.trim().startsWith('<')) {
+      console.error('Server error:', text.substring(0, 500));
+      throw new Error('Server returned HTML');
     }
-  } catch (err) {
-    console.error('Avatar upload error:', err);
-    showToast('Upload failed. Please try again.');
-  }
-}
-
-// ── Cover photo upload (header click) ────────────────────────
-async function uploadCoverPhoto(file) {
-  const formData = new FormData();
-  formData.append('user_id', currentUserId);
-  formData.append('cover_photo', file);
-
-  try {
-    const res  = await fetch('../api/users/user/uploads/covers/update-cover-pic.php', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      const url = data.cover_photo || URL.createObjectURL(file);
-      const banner = document.getElementById('profileBanner');
-      if (banner) {
-        banner.style.backgroundImage    = `url('${url}')`;
-        banner.style.backgroundSize     = 'cover';
-        banner.style.backgroundPosition = 'center';
-      }
-      showToast('Cover photo updated!');
-    } else {
-      showToast(data.error || 'Upload failed.');
+    return JSON.parse(text);
+  })
+  .then(function(res) {
+    if (res.success) {
+      card.style.opacity = '0';
+      setTimeout(function(){ card.remove(); }, 300);
+      showToast('Deleted');
     }
-  } catch (err) {
-    console.error('Cover upload error:', err);
-    showToast('Upload failed. Please try again.');
-  }
+  })
+  .catch(function(err) {
+    console.error('Delete failed:', err);
+  });
 }
 
-// ── Avatar seed picker (modal) ────────────────────────────────
-function selectSeed(el) {
-  document.querySelectorAll('.ep-avatar-seed-opt').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-  const preview = document.getElementById('epAvatarPreview');
-  if (preview) preview.src = el.src;
-}
+function editPost(btn) { showToast('Coming soon', 'warning'); }
+function reportPost(btn) { showToast('Coming soon', 'warning'); }
+function sharePost(btn) { showToast('Coming soon', 'warning'); }
 
-// ── Follow toggle (placeholder — no follow table in DB) ──────
-function toggleFollow(btn) {
-  const isFollowing = btn.classList.contains('following');
-  const icon = btn.querySelector('i');
-  const text = btn.querySelector('span');
-
-  if (isFollowing) {
-    btn.classList.remove('following');
-    if (icon) icon.className = 'fas fa-user-plus';
-    if (text) text.textContent = 'Follow';
-    showToast('Unfollowed');
-  } else {
-    btn.classList.add('following');
-    if (icon) icon.className = 'fas fa-user-check';
-    if (text) text.textContent = 'Following';
-    showToast('Now following!');
-  }
+function showToast(msg, type) {
+  type = type || 'success';
+  var t = document.createElement('div');
+  t.className = 'toast-message toast-' + type;
+  t.innerHTML = '<i class="fas fa-' + (type === 'success' ? 'check-circle' : 'exclamation-circle') + '"></i> ' + msg;
+  var c = document.getElementById('toastContainer');
+  if (c) c.appendChild(t);
+  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 3000);
 }

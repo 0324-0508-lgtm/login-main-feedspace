@@ -324,6 +324,105 @@ $FEED_POSTS = $posts;
         display: block;
         color: var(--color-mid, #8c939d);
     }
+
+    /* ===== CREATE POST CARD ===== */
+    .create-post-card {
+      background: var(--color-white);
+      border: 2px solid var(--color-border);
+      border-radius: 22px;
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
+    }
+    .create-post-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .create-post-top img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .create-post-input {
+      flex: 1;
+      border: none;
+      background: var(--color-cream);
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      color: var(--color-dark);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+    .create-post-input:hover {
+      background: #e8e8ec;
+    }
+    .create-post-input::placeholder {
+      color: var(--color-mid);
+    }
+    .create-post-bottom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--color-border);
+    }
+    .create-post-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--color-subtext);
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .create-post-action:hover {
+      background: var(--color-cream);
+    }
+    .create-post-action i {
+      font-size: 1.1rem;
+    }
+    .create-post-submit {
+      margin-left: auto;
+      background: var(--color-dark);
+      color: var(--color-white);
+      border: none;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .create-post-submit:hover {
+      background: var(--color-mid);
+      transform: translateY(-1px);
+    }
+    /* ===== POSTS LOADING ===== */
+    .posts-loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--color-subtext);
+      font-size: 0.95rem;
+    }
+    .posts-loading i {
+      margin-right: 8px;
+      color: var(--color-accent);
+    }
+
   </style>
 </head>
 
@@ -371,7 +470,7 @@ $FEED_POSTS = $posts;
 
 <div class="app-body">
   <aside class="sidebar">
-    <a href="..\html\profile.html" class="sidebar-profile-entry" title="Go to profile">
+    <a href="..\html\profile.php" class="sidebar-profile-entry" title="Go to profile">
       <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
       <span class="sidebar-profile-name">Kim Ballebar</span>
     </a>
@@ -398,137 +497,22 @@ $FEED_POSTS = $posts;
       <div class="feed-center">
         <div class="create-post-card">
           <div class="create-post-top">
-            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User"/>
+            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" id="createPostAvatar"/>
             <input type="text" id="newPostInput" class="create-post-input" placeholder="What's happening on campus?" onclick="openPostModal('')"/>
-            <button onclick="openPostModal()" class="create-post-btn"> + Create Post</button>
+          </div>
+          <div class="create-post-bottom">
+            <button class="create-post-action" onclick="openPostModalWithImage()">
+              <i class="fas fa-image" style="color:#45bd62;"></i> Photo
+            </button>
+            <button class="create-post-action" onclick="openPostModal()">
+              <i class="fas fa-pen" style="color:#1877f2;"></i> Post
+            </button>
+            <button class="create-post-submit" onclick="openPostModal()">+ Create Post</button>
           </div>
         </div>
 
-        <div id="feedPosts">
-          <?php if (!empty($FEED_POSTS) && is_array($FEED_POSTS)): ?>
-            <?php foreach ($FEED_POSTS as $post): ?>
-              <?php
-                $pid = (int)($post['post_id'] ?? 0);
-                $content = htmlspecialchars((string)($post['content'] ?? ''), ENT_QUOTES, 'UTF-8');
-                $author = htmlspecialchars((string)($post['full_name'] ?? ''), ENT_QUOTES, 'UTF-8');
-                $avatar = htmlspecialchars((string)($post['profile_picture'] ?? ''), ENT_QUOTES, 'UTF-8');
-                $likeCount = (int)($post['like_count'] ?? 0);
-                $commentCount = (int)($post['comment_count'] ?? 0);
-                $userLiked = !empty($post['user_liked']);
-                $isShared = !empty($post['is_shared']);
-                
-                $img = $post['image'] ?? null;
-                $imgTag = '';
-                if (!empty($img)) {
-                    $safeImg = htmlspecialchars((string)$img, ENT_QUOTES, 'UTF-8');
-                    $imgTag = '<div class="image-grid grid-1"><img src="' . $safeImg . '" alt="Post image" class="post-image" onerror="this.style.display=\'none\'"/></div>';
-                }
-
-                // Build shared post nested card HTML
-                $sharedCardHtml = '';
-                if ($isShared && !empty($post['original'])) {
-                    $orig = $post['original'];
-                    $origAuthor = htmlspecialchars((string)($orig['full_name'] ?? 'Unknown'), ENT_QUOTES, 'UTF-8');
-                    $origAvatar = htmlspecialchars((string)($orig['profile_picture'] ?? ''), ENT_QUOTES, 'UTF-8');
-                    $origContent = htmlspecialchars((string)($orig['content'] ?? ''), ENT_QUOTES, 'UTF-8');
-                    $origTime = htmlspecialchars((string)($orig['created_at'] ?? ''), ENT_QUOTES, 'UTF-8');
-                    $origPid = (int)($orig['post_id'] ?? 0);
-                    
-                    if ($origPid > 0) {
-                        $origImgTag = '';
-                        if (!empty($orig['image'])) {
-                            $safeOrigImg = htmlspecialchars((string)$orig['image'], ENT_QUOTES, 'UTF-8');
-                            $origImgTag = '<div class="sp-image-wrap"><img src="' . $safeOrigImg . '" alt="Original post image" class="sp-image" onerror="this.style.display=\'none\'"/></div>';
-                        }
-                        
-                        $sharedCardHtml = '
-                        <div class="shared-post-card" onclick="window.location.href=\'?post_id=' . $origPid . '\'">
-                            <div class="sp-header">
-                                <img src="' . $origAvatar . '" alt="Original author" class="sp-avatar" onerror="this.src=\'../assets/default.jpg\'"/>
-                                <div class="sp-meta">
-                                    <span class="sp-author">' . $origAuthor . '</span>
-                                    <span class="sp-time">' . $origTime . '</span>
-                                </div>
-                            </div>
-                            <div class="sp-body">
-                                <p class="sp-content">' . nl2br($origContent) . '</p>
-                                ' . $origImgTag . '
-                            </div>
-                        </div>';
-                    } else {
-                        $sharedCardHtml = '
-                        <div class="shared-post-card">
-                            <div class="sp-unavailable">
-                                <i class="fas fa-unlink"></i>
-                                This content is no longer available.
-                            </div>
-                        </div>';
-                    }
-                }
-              ?>
-
-              <div class="post-card" data-post-id="<?= $pid ?>">
-                <div class="post-header">
-                  <img src="<?= $avatar ?>" alt="User" class="post-avatar" onerror="this.src='../assets/default.jpg'"/>
-
-                  <div class="post-meta">
-                    <div class="post-author">
-    ${escapeHtml(author)} 
-    ${isShared ? '<span class="shared-badge"><i class="fas fa-share"></i> Shared</span>' : ''}
-    ${post.ai_status === 'review' ? '<span class="ai-badge review">🤖 Review</span>' : ''}
-    ${post.ai_status === 'rejected' ? '<span class="ai-badge rejected">🤖 Rejected</span>' : ''}
-</div>
-                    <div class="post-community">Community · <span class="post-time"><?= htmlspecialchars((string)($post['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span></div>
-                  </div>
-
-                  <button class="options-btn" type="button" onclick="togglePostOptions(this)" style="pointer-events:auto;"><i class="fas fa-sliders-h"></i></button>
-
-                  <div class="post-options-menu" role="menu">
-                    <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-                    <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-                    <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-                    <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
-                  </div>
-                </div>
-
-                <div class="post-body">
-                  <p><?= $content ?></p>
-                  <?= $sharedCardHtml ?>
-                  <?= $imgTag ?>
-                </div>
-
-                <div class="post-footer">
-                  <button class="reaction-btn <?= $userLiked ? 'liked' : '' ?>" data-post-id="<?= $pid ?>" type="button" onclick="return toggleLike(this)">
-                    <i class="<?= $userLiked ? 'fas' : 'far' ?> fa-heart"></i>
-                    <span><?= $likeCount ?></span>
-                  </button>
-
-                  <button class="reaction-btn" type="button" onclick="toggleComments(this)">
-                    <i class="fas fa-comment"></i> <span><?= $commentCount ?></span>Comment
-                  </button>
-
-                  <button class="reaction-btn" type="button" onclick="openShareModal(this)">
-                    <i class="fas fa-share"></i> <span>Share</span>
-                  </button>
-                </div>
-
-                <div class="comment-section" style="display:none;">
-                  <div class="comment-input-row">
-                    <img src="../assets/default.jpg" alt="User"/>
-                    <div class="comment-input-wrap">
-                      <input type="text" placeholder="Write a comment..."/>
-                      <button class="comment-send-btn" type="button" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            <?php endforeach; ?>
-          <?php else: ?>
-            <div style="text-align:center;padding:20px;color:var(--color-subtext);">No posts yet.</div>
-          <?php endif; ?>
-        </div>
-      </div>
+        <!-- AFTER: Dynamically loaded by feed-dynamic.js -->
+<div id="feedPosts"></div>
 
       <div class="right-panel-card">
         <div class="rp-header">
@@ -554,9 +538,13 @@ $FEED_POSTS = $posts;
       </div>
       <button class="modal-close" onclick="closeModal('postModal')"><i class="fas fa-times"></i></button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="position:relative;">
       <textarea id="modalPostText" placeholder="What's on your mind?" rows="5"></textarea>
-      <input type="file" id="modalPostImage" accept="image/*" style="display:none;"/>
+      <div id="modalImagePreview" style="display:none;margin:10px 0;border-radius:12px;overflow:hidden;position:relative;">
+        <img src="" style="width:100%;max-height:250px;object-fit:cover;display:block;" id="modalPreviewImg"/>
+        <button onclick="clearModalImage()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+      </div>
+      <input type="file" id="modalPostImage" accept="image/*" style="display:none;" onchange="previewModalImage(this)"/>
       <div class="modal-attach-btns">
         <button class="modal-attach-btn" type="button" onclick="document.getElementById('modalPostImage').click()"><i class="fas fa-image"></i> Photo</button>
         <button class="modal-attach-btn" type="button" onclick="document.getElementById('modalPostImage').click()"><i class="fas fa-file"></i> File</button>
@@ -628,7 +616,6 @@ $FEED_POSTS = $posts;
     </div>
   </div>
 </div>
-
 
 
 <script src="../js/base.js"></script>
@@ -746,6 +733,36 @@ $FEED_POSTS = $posts;
     if (ta) ta.focus();
   };
 
+  window.openPostModalWithImage = window.openPostModalWithImage || function() {
+    openPostModal();
+    setTimeout(function() {
+      var fileInput = document.getElementById('modalPostImage');
+      if (fileInput) fileInput.click();
+    }, 100);
+  };
+
+  window.previewModalImage = window.previewModalImage || function(input) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var preview = document.getElementById('modalImagePreview');
+        var img = document.getElementById('modalPreviewImg');
+        if (preview && img) {
+          img.src = e.target.result;
+          preview.style.display = 'block';
+        }
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  };
+
+  window.clearModalImage = window.clearModalImage || function() {
+    var input = document.getElementById('modalPostImage');
+    var preview = document.getElementById('modalImagePreview');
+    if (input) input.value = '';
+    if (preview) preview.style.display = 'none';
+  };
+
   window.closeModal = window.closeModal || function(id) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('show');
@@ -795,6 +812,7 @@ $FEED_POSTS = $posts;
         if (typeof closeModal === 'function') closeModal('postModal');
         if (ta) ta.value = '';
         if (fileInput) fileInput.value = '';
+        clearModalImage();
         if (typeof loadFeedPosts === 'function') {
           loadFeedPosts(1, true);
         } else {

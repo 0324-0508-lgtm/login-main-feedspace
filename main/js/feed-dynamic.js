@@ -149,18 +149,11 @@ function escapeHtml(str) {
     });
 }
 
-// Only load dynamic posts if container is empty or we need fresh data
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        const container = document.getElementById('feedPosts');
-        // Only load dynamically if there are no server-rendered posts
-        if (container && container.children.length === 0) {
-            loadFeedPostsDynamic(1);
-        }
-    });
-} else {
+// Always load posts dynamically on page load
+document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('feedPosts');
-    if (container && container.children.length === 0) {
+    if (container) {
+        container.innerHTML = '<div class="posts-loading"><i class="fas fa-spinner fa-spin"></i> Loading posts...</div>';
         loadFeedPostsDynamic(1);
     }
-}
+});
