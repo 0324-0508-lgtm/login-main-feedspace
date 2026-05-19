@@ -1,6 +1,6 @@
 // feed.js — FeedSpace Main Feed
 
-const DEFAULT_AVATAR = '/login-main-feedspace/assets/default.jpg';
+const DEFAULT_AVATAR = '../assets/default.jpg';
 
 function escapeHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -212,9 +212,19 @@ async function loadComments(postId, section) {
                 toxicityBadge = '<span class="toxicity-badge" title="Toxicity: ' + Math.round(comment.toxicity_score * 100) + '%">⚠️</span>';
             }
 
-            item.innerHTML = '<img src="' + escapeAttr(comment.avatar || DEFAULT_AVATAR) + '" alt="User"/>' +
+            // Clickable avatar and name linking to profile
+            var commenterId = escapeAttr(comment.user_id || '');
+            var commenterLink = 'profile.php?id=' + commenterId;
+            var commenterAvatar = comment.avatar || comment.profile_picture || DEFAULT_AVATAR;
+
+            item.innerHTML = 
+                '<a href="' + commenterLink + '" class="comment-avatar-link">' +
+                    '<img src="' + escapeAttr(commenterAvatar) + '" alt="User" onerror="this.src=\'' + DEFAULT_AVATAR + '\'"/>' +
+                '</a>' +
                 '<div class="comment-bubble">' +
-                    '<div class="comment-author">' + escapeHtml(comment.author) + toxicityBadge + '</div>' +
+                    '<a href="' + commenterLink + '" class="comment-author-link">' +
+                        '<div class="comment-author">' + escapeHtml(comment.author) + toxicityBadge + '</div>' +
+                    '</a>' +
                     '<div class="comment-text">' + escapeHtml(comment.content) + '</div>' +
                     modBadge +
                 '</div>';
@@ -562,8 +572,7 @@ function archivePost(el) {
 
 /*
 |--------------------------------------------------------------------------
-| CREATE POST CARD (with shared post support)
-| Uses string concatenation ONLY - no template literals for HTML
+| CREATE POST CARD (with nested shared post support, clickable avatars)
 |--------------------------------------------------------------------------
 */
 
@@ -572,6 +581,7 @@ function createPostCard(post) {
     card.className = 'post-card';
 
     var postId = post.post_id || post.id;
+    var userId = post.user_id || '';
     var avatar = post.profile_picture || DEFAULT_AVATAR;
     var author = post.full_name || 'Unknown';
     var content = post.content || '';
@@ -581,7 +591,10 @@ function createPostCard(post) {
     var userLiked = post.user_liked || false;
     var isShared = post.is_shared || false;
 
-    // Build badges using string concatenation - NO template literals
+    // Build profile link
+    var profileLink = 'profile.php?id=' + escapeAttr(userId);
+
+    // Build badges
     var sharedBadge = '';
     if (isShared) {
         sharedBadge = '<span class="shared-badge"><i class="fas fa-share"></i> Shared</span>';
@@ -594,26 +607,38 @@ function createPostCard(post) {
         aiBadge = '<span class="ai-badge rejected">🤖 Rejected</span>';
     }
 
-    // Build shared post preview if applicable
+    // ===== NESTED SHARED POST (Facebook-style) =====
     var sharedHtml = '';
-    if (isShared && post.original_post) {
-        var orig = post.original_post;
+    if (isShared && post.original) {
+        var orig = post.original;
+        var origUserId = orig.user_id || '';
         var origAvatar = orig.profile_picture || DEFAULT_AVATAR;
+        var origName = orig.full_name || orig.author || 'Unknown';
+        var origContent = orig.content || '';
+        var origTime = orig.created_at || '';
+        
+        // Original post image
         var origImageHtml = '';
-        if (orig.file_url) {
-            origImageHtml = '<div class="shared-image"><img src="' + escapeAttr(orig.file_url) + '" alt="Shared image"/></div>';
+        if (orig.image || orig.file_url) {
+            origImageHtml = '<div class="sp-image-wrap"><img src="' + escapeAttr(orig.image || orig.file_url) + '" class="sp-image" onerror="this.style.display=\'none\'"/></div>';
         }
-        sharedHtml = '<div class="shared-post-wrapper">' +
-            '<div class="shared-post-header"><i class="fas fa-retweet"></i><span>Shared from <strong>' + escapeHtml(orig.author) + '</strong></span></div>' +
-            '<div class="shared-post-card">' +
-                '<div class="shared-post-author">' +
-                    '<img src="' + escapeAttr(origAvatar) + '" alt="User" class="shared-avatar"/>' +
-                    '<div class="shared-author-info">' +
-                        '<div class="shared-name">' + escapeHtml(orig.author) + '</div>' +
-                        '<div class="shared-time">' + escapeHtml(orig.created_at) + '</div>' +
-                    '</div>' +
+        
+        // Build the nested shared post card
+        sharedHtml = '<div class="shared-post-card">' +
+            '<div class="sp-header">' +
+                '<a href="profile.php?id=' + escapeAttr(origUserId) + '" class="sp-avatar-link">' +
+                    '<img src="' + escapeAttr(origAvatar) + '" class="sp-avatar" onerror="this.src=\'' + DEFAULT_AVATAR + '\'"/>' +
+                '</a>' +
+                '<div class="sp-meta">' +
+                    '<a href="profile.php?id=' + escapeAttr(origUserId) + '" class="sp-author-link">' +
+                        '<span class="sp-author">' + escapeHtml(origName) + '</span>' +
+                    '</a>' +
+                    '<span class="sp-time">' + escapeHtml(origTime) + '</span>' +
                 '</div>' +
-                '<div class="shared-post-body"><p>' + escapeHtml(orig.content) + '</p>' + origImageHtml + '</div>' +
+            '</div>' +
+            '<div class="sp-body">' +
+                '<p class="sp-content">' + escapeHtml(origContent) + '</p>' +
+                origImageHtml +
             '</div>' +
         '</div>';
     }
@@ -623,7 +648,7 @@ function createPostCard(post) {
     // Build post image HTML
     var postImageHtml = '';
     if (!isShared && image) {
-        postImageHtml = '<div class="image-grid grid-1"><img src="' + escapeAttr(image) + '" alt="Post image" class="post-image"/></div>';
+        postImageHtml = '<div class="image-grid grid-1"><img src="' + escapeAttr(image) + '" alt="Post image" class="post-image" onerror="this.style.display=\'none\'"/></div>';
     }
 
     // Build announcement badge
@@ -636,12 +661,15 @@ function createPostCard(post) {
     var likeIconClass = userLiked ? 'fas fa-heart' : 'far fa-heart';
     var likeBtnClass = userLiked ? 'reaction-btn liked' : 'reaction-btn';
 
-    // Build the ENTIRE card using string concatenation ONLY
-    // NO template literals (${...}) anywhere in the HTML
+    // Build the ENTIRE card with clickable avatars and names
     var html = '<div class="post-header">' +
-        '<img src="' + escapeAttr(avatar) + '" alt="User" class="post-avatar"/>' +
+        '<a href="' + profileLink + '" class="post-avatar-link">' +
+            '<img src="' + escapeAttr(avatar) + '" alt="User" class="post-avatar" onerror="this.src=\'' + DEFAULT_AVATAR + '\'"/>' +
+        '</a>' +
         '<div class="post-meta">' +
-            '<div class="post-author">' + escapeHtml(author) + ' ' + sharedBadge + ' ' + aiBadge + '</div>' +
+            '<a href="' + profileLink + '" class="post-author-link">' +
+                '<div class="post-author">' + escapeHtml(author) + ' ' + sharedBadge + ' ' + aiBadge + '</div>' +
+            '</a>' +
             '<div class="post-community">Community · <span class="post-time">' + escapeHtml(post.created_at || '') + '</span></div>' +
             announcementBadge +
         '</div>' +

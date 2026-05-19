@@ -11,6 +11,20 @@ if (empty($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+// ========== CURRENT USER DATA ==========
+$currentUserId    = $_SESSION['user_id'] ?? '';
+$currentFirstName = $_SESSION['first_name'] ?? 'User';
+$currentLastName  = $_SESSION['last_name'] ?? '';
+$currentUserName  = trim($currentFirstName . ' ' . $currentLastName) ?: 'User';
+
+$currentUserPic = $_SESSION['profile_picture'] ?? '';
+if (empty($currentUserPic)) {
+    $currentUserPic = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' . urlencode($currentFirstName);
+} elseif (strpos($currentUserPic, 'http') !== 0 && strpos($currentUserPic, 'data:') !== 0) {
+    $currentUserPic = '../../uploads/profiles/' . $currentUserPic;
+}
+// =====================================
+
 require_once __DIR__ . '/../../config/db.php';
 require_once __DIR__ . '/../../config/ban-check.php';
 
@@ -19,6 +33,25 @@ if (isUserBanned($user_id, $conn)) {
     echo 'Account banned';
     exit();
 }
+
+// ========== FETCH CURRENT USER FROM DATABASE ==========
+$currentUserId = $_SESSION['user_id'] ?? '';
+
+$currentUserStmt = $conn->prepare("SELECT first_name, last_name, profile_picture FROM users WHERE user_id = ?");
+$currentUserStmt->execute([$currentUserId]);
+$currentUser = $currentUserStmt->fetch(PDO::FETCH_ASSOC);
+
+$currentFirstName = $currentUser['first_name'] ?? 'User';
+$currentLastName  = $currentUser['last_name'] ?? '';
+$currentUserName  = trim($currentFirstName . ' ' . $currentLastName) ?: 'User';
+
+$currentUserPic = $currentUser['profile_picture'] ?? '';
+if (empty($currentUserPic)) {
+    $currentUserPic = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' . urlencode($currentFirstName);
+} elseif (strpos($currentUserPic, 'http') !== 0 && strpos($currentUserPic, 'data:') !== 0) {
+    $currentUserPic = '../../uploads/profiles/' . $currentUserPic;
+}
+// =====================================
 
 $isApiRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
@@ -448,10 +481,6 @@ $FEED_POSTS = $posts;
       <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
     </button>
 
-    <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
-      <span>You</span>
-    </div>
 
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
@@ -470,10 +499,10 @@ $FEED_POSTS = $posts;
 
 <div class="app-body">
   <aside class="sidebar">
-    <a href="..\html\profile.php" class="sidebar-profile-entry" title="Go to profile">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
-      <span class="sidebar-profile-name">Kim Ballebar</span>
-    </a>
+    <a href="profile.php?id=<?php echo urlencode($currentUserId); ?>" class="sidebar-profile-entry" title="Go to profile">
+  <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="Profile" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+  <span class="sidebar-profile-name"><?php echo htmlspecialchars($currentUserName); ?></span>
+</a>
 
     <div class="sidebar-divider"></div>
 
@@ -497,8 +526,10 @@ $FEED_POSTS = $posts;
       <div class="feed-center">
         <div class="create-post-card">
           <div class="create-post-top">
-            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="User" id="createPostAvatar"/>
-            <input type="text" id="newPostInput" class="create-post-input" placeholder="What's happening on campus?" onclick="openPostModal('')"/>
+            <div class="create-post-top">
+  <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="User" id="createPostAvatar" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+  <input type="text" id="newPostInput" class="create-post-input" placeholder="What's happening on campus, <?php echo htmlspecialchars($currentFirstName); ?>?" onclick="openPostModal('')"/>
+</div>
           </div>
           <div class="create-post-bottom">
             <button class="create-post-action" onclick="openPostModalWithImage()">
@@ -530,12 +561,12 @@ $FEED_POSTS = $posts;
   <div class="modal">
     <div class="modal-header">
       <div style="display:flex;align-items:center;gap:10px;">
-        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Trixie" alt="User" style="width:32px;height:32px;border-radius:50%;"/>
-        <div>
-          <div style="font-weight:800;font-size:0.9rem;color:var(--color-dark);">Trixie May Pontiga</div>
-          <div style="font-size:0.74rem;color:var(--color-subtext);">Community Name</div>
-        </div>
-      </div>
+  <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="User" style="width:32px;height:32px;border-radius:50%;" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+  <div>
+    <div style="font-weight:800;font-size:0.9rem;color:var(--color-dark);"><?php echo htmlspecialchars($currentUserName); ?></div>
+    <div style="font-size:0.74rem;color:var(--color-subtext);">Community Name</div>
+  </div>
+</div>
       <button class="modal-close" onclick="closeModal('postModal')"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body" style="position:relative;">
@@ -547,7 +578,6 @@ $FEED_POSTS = $posts;
       <input type="file" id="modalPostImage" accept="image/*" style="display:none;" onchange="previewModalImage(this)"/>
       <div class="modal-attach-btns">
         <button class="modal-attach-btn" type="button" onclick="document.getElementById('modalPostImage').click()"><i class="fas fa-image"></i> Photo</button>
-        <button class="modal-attach-btn" type="button" onclick="document.getElementById('modalPostImage').click()"><i class="fas fa-file"></i> File</button>
       </div>
       <div class="modal-footer">
         <button class="btn-primary" onclick="submitPost()">+ Create Post</button>
@@ -865,6 +895,8 @@ $FEED_POSTS = $posts;
 
   window.toggleDropdown = window.toggleDropdown || function() {};
   window.confirmDelete = window.confirmDelete || function() {};
+
+  
 </script>
 </body>
 </html>

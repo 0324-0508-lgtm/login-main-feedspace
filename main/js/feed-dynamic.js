@@ -66,7 +66,8 @@ async function loadFeedPostsDynamic(page = 1) {
             normalized.like_count = Number(normalized.like_count ?? 0);
             normalized.comment_count = Number(normalized.comment_count ?? 0);
             normalized.full_name = normalized.full_name || 'Unknown User';
-            normalized.profile_picture = normalized.profile_picture || 'http://localhost/assets/default.png';
+            normalized.profile_picture = normalized.profile_picture || '../assets/default.jpg';
+
 
             if (typeof createPostCard === 'function') {
                 const card = createPostCard(normalized);

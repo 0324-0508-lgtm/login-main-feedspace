@@ -1,31 +1,35 @@
-document.addEventListener('DOMContentLoaded', function() {
-  var userIdEl = document.getElementById('profile-user-id');
-  var userId = userIdEl ? userIdEl.dataset.userId : (sessionStorage.getItem('user_id') || localStorage.getItem('user_id'));
-
+(function() {
+  var userIdEl = document.getElementById('postsContainer');
+  var userId = userIdEl ? userIdEl.dataset.userId : (window.__profileUserId || '');
+  
+  console.log('=== PROFILE DEBUG ===');
+  console.log('postsContainer found:', !!userIdEl);
+  console.log('data-user-id:', userIdEl ? userIdEl.dataset.userId : 'null');
+  console.log('window.__profileUserId:', window.__profileUserId || 'not set');
+  console.log('Final userId:', userId);
+  console.log('=====================');
+  
   if (userId) {
-    loadProfilePosts(userId);
+    loadProfilePosts(userId, 1);
   } else {
     console.error('No user_id found');
-    var container = document.getElementById('profile-posts-container') || document.getElementById('posts-container');
+    var container = document.getElementById('postsContainer');
     if (container) {
       container.innerHTML = '<p class="error">User ID not found. Please log in again.</p>';
     }
   }
-});
+})();
 
 async function loadProfilePosts(userId, page) {
     page = page || 1;
     try {
-        var container = document.getElementById('profile-posts-container') || document.getElementById('posts-container');
+        var container = document.getElementById('postsContainer');
         if (!container) {
             console.error('No posts container found');
             return;
         }
 
-        const response = await fetch(
-            '/login-main-feedspace/main/api/users/posts/get-profile-posts.php?user_id=' + userId + '&page=' + page
-        );
-
+        const response = await fetch('../api/users/posts/get-profile-posts.php?user_id=' + encodeURIComponent(userId) + '&page=' + page);
         const text = await response.text();
 
         if (text.trim().startsWith('<')) {
@@ -38,18 +42,20 @@ async function loadProfilePosts(userId, page) {
 
         if (data.success && data.posts) {
             container.innerHTML = '';
-            data.posts.forEach(function(post) {
-                container.appendChild(buildPostCard(post));
-            });
-        } else if (data.posts && data.posts.length === 0) {
-            container.innerHTML = '<p class="no-posts">No posts yet.</p>';
+            if (data.posts.length === 0) {
+                container.innerHTML = '<p class="no-posts">No posts yet.</p>';
+            } else {
+                data.posts.forEach(function(post) {
+                    container.appendChild(buildPostCard(post));
+                });
+            }
+        } else {
+            container.innerHTML = '<p class="error">' + (data.error || 'Failed to load posts') + '</p>';
         }
-
-        return data;
 
     } catch (error) {
         console.error('Failed to load posts:', error);
-        var container = document.getElementById('profile-posts-container') || document.getElementById('posts-container');
+        var container = document.getElementById('postsContainer');
         if (container) {
             container.innerHTML = '<p class="error">Failed to load posts. Please refresh.</p>';
         }

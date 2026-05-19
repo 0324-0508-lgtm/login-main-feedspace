@@ -279,11 +279,7 @@ if (!$isOwnProfile) {
     <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
       <i class="fas fa-bell"></i><span class="badge" id="notifBadge"></span>
     </button>
-    <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
-      <img src="<?php echo $profilePic; ?>" alt="Profile" id="navbarAvatar"
-           onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
-      <span id="navbarProfileName"><?php echo htmlspecialchars($user['first_name']); ?></span>
-    </div>
+    
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
       <div id="notifList"><div class="notif-item read"><div class="notif-dot read"></div><div><div class="notif-title">Loading…</div></div></div></div>
