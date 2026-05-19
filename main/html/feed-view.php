@@ -36,19 +36,33 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
             p.content,
             p.file_url,
             p.created_at,
+            p.shared_post_id,
             u.first_name,
             u.last_name,
-            u.profile_picture
+            u.profile_picture,
+            -- Original post data (if shared)
+            op.post_id AS orig_post_id,
+            op.content AS orig_content,
+            op.file_url AS orig_file_url,
+            op.created_at AS orig_created_at,
+            ou.first_name AS orig_first_name,
+            ou.last_name AS orig_last_name,
+            ou.profile_picture AS orig_profile_picture
         FROM posts p
         JOIN users u ON p.user_id = u.user_id
+        LEFT JOIN posts op ON p.shared_post_id = op.post_id AND op.is_deleted = 0
+        LEFT JOIN users ou ON op.user_id = ou.user_id
         LEFT JOIN user_bans b ON u.user_id = b.user_id
             AND (b.expires_at > NOW() OR b.expires_at IS NULL)
+        LEFT JOIN user_bans ob ON ou.user_id = ob.user_id
+            AND (ob.expires_at > NOW() OR ob.expires_at IS NULL)
         WHERE p.is_deleted = 0
             AND p.deleted_at IS NULL
             AND p.is_archived = 0
             AND p.status = 'approved'
             AND p.ai_status != 'rejected'
             AND b.id IS NULL
+            AND (p.shared_post_id IS NULL OR (op.post_id IS NOT NULL AND ob.id IS NULL))
         ORDER BY p.created_at DESC
         LIMIT ? OFFSET ?
     ");
@@ -63,7 +77,7 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
         $row['full_name'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
         $row['profile_picture'] = !empty($row['profile_picture'])
             ? '../../uploads/profiles/' . $row['profile_picture']
-            : '..\main\assets\default.jpg';
+            : '../assets/default.jpg';
         
         if (!empty($row['file_url'])) {
             $row['image'] = preg_match('#^https?://#i', $row['file_url'])
@@ -74,6 +88,28 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
         }
         
         $row['created_at'] = date('M d, Y H:i', strtotime($row['created_at']));
+        
+        // Process original post data for shared posts
+        if (!empty($row['shared_post_id'])) {
+            $row['is_shared'] = true;
+            $row['original'] = [
+                'post_id' => $row['orig_post_id'],
+                'content' => $row['orig_content'],
+                'full_name' => trim(($row['orig_first_name'] ?? '') . ' ' . ($row['orig_last_name'] ?? '')),
+                'profile_picture' => !empty($row['orig_profile_picture'])
+                    ? '../../uploads/profiles/' . $row['orig_profile_picture']
+                    : '../assets/default.jpg',
+                'created_at' => date('M d, Y H:i', strtotime($row['orig_created_at'] ?? 'now')),
+                'image' => null
+            ];
+            if (!empty($row['orig_file_url'])) {
+                $row['original']['image'] = preg_match('#^https?://#i', $row['orig_file_url'])
+                    ? $row['orig_file_url']
+                    : '../../uploads/posts/' . $row['orig_file_url'];
+            }
+        } else {
+            $row['is_shared'] = false;
+        }
     }
     
     echo json_encode(['success' => true, 'posts' => $posts]);
@@ -91,22 +127,36 @@ $stmt = $conn->prepare("
         p.content,
         p.file_url,
         p.created_at,
+        p.shared_post_id,
         u.first_name,
         u.last_name,
         u.profile_picture,
         (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comment_count,
-        EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_liked
+        EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_liked,
+        -- Original post data (if shared)
+        op.post_id AS orig_post_id,
+        op.content AS orig_content,
+        op.file_url AS orig_file_url,
+        op.created_at AS orig_created_at,
+        ou.first_name AS orig_first_name,
+        ou.last_name AS orig_last_name,
+        ou.profile_picture AS orig_profile_picture
      FROM posts p
      JOIN users u ON p.user_id = u.user_id
+     LEFT JOIN posts op ON p.shared_post_id = op.post_id AND op.is_deleted = 0
+     LEFT JOIN users ou ON op.user_id = ou.user_id
      LEFT JOIN user_bans b ON u.user_id = b.user_id
         AND (b.expires_at > NOW() OR b.expires_at IS NULL)
+     LEFT JOIN user_bans ob ON ou.user_id = ob.user_id
+        AND (ob.expires_at > NOW() OR ob.expires_at IS NULL)
      WHERE p.is_deleted = 0
         AND p.deleted_at IS NULL
         AND p.is_archived = 0
         AND p.status = 'approved'
         AND p.ai_status != 'rejected'
         AND b.id IS NULL
+        AND (p.shared_post_id IS NULL OR (op.post_id IS NOT NULL AND ob.id IS NULL))
      ORDER BY p.created_at DESC
      LIMIT ? OFFSET ?
 ");
@@ -134,6 +184,28 @@ foreach ($posts as &$row) {
     
     $row['created_at'] = date('M d, Y H:i', strtotime($row['created_at']));
     $row['user_liked'] = !empty($row['user_liked']);
+    
+    // Process original post data for shared posts
+    if (!empty($row['shared_post_id'])) {
+        $row['is_shared'] = true;
+        $row['original'] = [
+            'post_id' => $row['orig_post_id'],
+            'content' => $row['orig_content'],
+            'full_name' => trim(($row['orig_first_name'] ?? '') . ' ' . ($row['orig_last_name'] ?? '')),
+            'profile_picture' => !empty($row['orig_profile_picture'])
+                ? '../../uploads/profiles/' . $row['orig_profile_picture']
+                : '../assets/default.jpg',
+            'created_at' => date('M d, Y H:i', strtotime($row['orig_created_at'] ?? 'now')),
+            'image' => null
+        ];
+        if (!empty($row['orig_file_url'])) {
+            $row['original']['image'] = preg_match('#^https?://#i', $row['orig_file_url'])
+                ? $row['orig_file_url']
+                : '../../uploads/posts/' . $row['orig_file_url'];
+        }
+    } else {
+        $row['is_shared'] = false;
+    }
 }
 
 $FEED_POSTS = $posts;
@@ -149,6 +221,7 @@ $FEED_POSTS = $posts;
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="../css/base.css"/>
   <link rel="stylesheet" href="../css/feed.css"/>
+  <link rel="stylesheet" href="../css/shared-post.css">
 
   <style>
     .feed-layout { display: flex; gap: 24px; width: 100%; max-width: 1240px; align-items: flex-start; }
@@ -175,11 +248,87 @@ $FEED_POSTS = $posts;
     .trending-left { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 700; color: var(--color-text); }
     .trending-left i { color: var(--color-mid); font-size: 0.9rem; }
     .trending-count { font-size: 0.78rem; color: var(--color-subtext); font-weight: 600; }
+
+    /* ===== NESTED SHARED POST CARD (Facebook-style) ===== */
+    .shared-post-card {
+        border: 1.5px solid var(--color-border, #e4e6eb);
+        border-radius: 12px;
+        background: var(--color-bg-light, #f0f2f5);
+        margin-top: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .shared-post-card:hover {
+        background: var(--color-bg-hover, #e4e6eb);
+    }
+    .shared-post-card .sp-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px 8px 14px;
+    }
+    .shared-post-card .sp-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #ddd;
+    }
+    .shared-post-card .sp-meta {
+        display: flex;
+        flex-direction: column;
+    }
+    .shared-post-card .sp-author {
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--color-text, #050505);
+    }
+    .shared-post-card .sp-time {
+        font-size: 0.76rem;
+        color: var(--color-subtext, #65676b);
+        font-weight: 600;
+    }
+    .shared-post-card .sp-body {
+        padding: 0 14px 10px 14px;
+    }
+    .shared-post-card .sp-content {
+        font-size: 0.9rem;
+        color: var(--color-text, #050505);
+        line-height: 1.5;
+        margin-bottom: 8px;
+        word-break: break-word;
+    }
+    .shared-post-card .sp-image-wrap {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #ddd;
+    }
+    .shared-post-card .sp-image {
+        width: 100%;
+        max-height: 320px;
+        object-fit: cover;
+        display: block;
+    }
+    .shared-post-card .sp-unavailable {
+        padding: 24px 14px;
+        text-align: center;
+        color: var(--color-subtext, #65676b);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .shared-post-card .sp-unavailable i {
+        font-size: 1.4rem;
+        margin-bottom: 6px;
+        display: block;
+        color: var(--color-mid, #8c939d);
+    }
   </style>
 </head>
 
 <body>
-<<header class="navbar">
+<header class="navbar">
   <div class="nav-logo">
     <a href="feed-view.php">
       <img src="../assets/logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
@@ -266,6 +415,7 @@ $FEED_POSTS = $posts;
                 $likeCount = (int)($post['like_count'] ?? 0);
                 $commentCount = (int)($post['comment_count'] ?? 0);
                 $userLiked = !empty($post['user_liked']);
+                $isShared = !empty($post['is_shared']);
                 
                 $img = $post['image'] ?? null;
                 $imgTag = '';
@@ -273,14 +423,61 @@ $FEED_POSTS = $posts;
                     $safeImg = htmlspecialchars((string)$img, ENT_QUOTES, 'UTF-8');
                     $imgTag = '<div class="image-grid grid-1"><img src="' . $safeImg . '" alt="Post image" class="post-image" onerror="this.style.display=\'none\'"/></div>';
                 }
+
+                // Build shared post nested card HTML
+                $sharedCardHtml = '';
+                if ($isShared && !empty($post['original'])) {
+                    $orig = $post['original'];
+                    $origAuthor = htmlspecialchars((string)($orig['full_name'] ?? 'Unknown'), ENT_QUOTES, 'UTF-8');
+                    $origAvatar = htmlspecialchars((string)($orig['profile_picture'] ?? ''), ENT_QUOTES, 'UTF-8');
+                    $origContent = htmlspecialchars((string)($orig['content'] ?? ''), ENT_QUOTES, 'UTF-8');
+                    $origTime = htmlspecialchars((string)($orig['created_at'] ?? ''), ENT_QUOTES, 'UTF-8');
+                    $origPid = (int)($orig['post_id'] ?? 0);
+                    
+                    if ($origPid > 0) {
+                        $origImgTag = '';
+                        if (!empty($orig['image'])) {
+                            $safeOrigImg = htmlspecialchars((string)$orig['image'], ENT_QUOTES, 'UTF-8');
+                            $origImgTag = '<div class="sp-image-wrap"><img src="' . $safeOrigImg . '" alt="Original post image" class="sp-image" onerror="this.style.display=\'none\'"/></div>';
+                        }
+                        
+                        $sharedCardHtml = '
+                        <div class="shared-post-card" onclick="window.location.href=\'?post_id=' . $origPid . '\'">
+                            <div class="sp-header">
+                                <img src="' . $origAvatar . '" alt="Original author" class="sp-avatar" onerror="this.src=\'../assets/default.jpg\'"/>
+                                <div class="sp-meta">
+                                    <span class="sp-author">' . $origAuthor . '</span>
+                                    <span class="sp-time">' . $origTime . '</span>
+                                </div>
+                            </div>
+                            <div class="sp-body">
+                                <p class="sp-content">' . nl2br($origContent) . '</p>
+                                ' . $origImgTag . '
+                            </div>
+                        </div>';
+                    } else {
+                        $sharedCardHtml = '
+                        <div class="shared-post-card">
+                            <div class="sp-unavailable">
+                                <i class="fas fa-unlink"></i>
+                                This content is no longer available.
+                            </div>
+                        </div>';
+                    }
+                }
               ?>
 
               <div class="post-card" data-post-id="<?= $pid ?>">
                 <div class="post-header">
-                  <img src="..\assets\default.jpg" alt="User" class="post-avatar"/>
+                  <img src="<?= $avatar ?>" alt="User" class="post-avatar" onerror="this.src='../assets/default.jpg'"/>
 
                   <div class="post-meta">
-                    <div class="post-author"><?= $author ?></div>
+                    <div class="post-author">
+    ${escapeHtml(author)} 
+    ${isShared ? '<span class="shared-badge"><i class="fas fa-share"></i> Shared</span>' : ''}
+    ${post.ai_status === 'review' ? '<span class="ai-badge review">🤖 Review</span>' : ''}
+    ${post.ai_status === 'rejected' ? '<span class="ai-badge rejected">🤖 Rejected</span>' : ''}
+</div>
                     <div class="post-community">Community · <span class="post-time"><?= htmlspecialchars((string)($post['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span></div>
                   </div>
 
@@ -296,6 +493,7 @@ $FEED_POSTS = $posts;
 
                 <div class="post-body">
                   <p><?= $content ?></p>
+                  <?= $sharedCardHtml ?>
                   <?= $imgTag ?>
                 </div>
 
@@ -399,8 +597,8 @@ $FEED_POSTS = $posts;
     </div>
     <div class="modal-body">
       <textarea id="shareText" placeholder="Add a comment..." rows="3"></textarea>
-      <div class="shared-post-preview">
-        <div class="sp-author">Trixie May Pontiga · Community Name</div>
+      <div class="shared-post-preview" id="sharePreviewContainer">
+        <div class="sp-author" id="sharePreviewAuthor">Trixie May Pontiga · Community Name</div>
         <div class="sp-text" id="sharePostPreview">*Shared post layout</div>
       </div>
     </div>
@@ -431,6 +629,8 @@ $FEED_POSTS = $posts;
   </div>
 </div>
 
+
+
 <script src="../js/base.js"></script>
 <script src="../js/notifications.js"></script>
 <script src="../js/announcements.js"></script>
@@ -438,6 +638,106 @@ $FEED_POSTS = $posts;
 <script src="../js/feed-dynamic.js"></script>
 
 <script>
+  // ===== SHARE MODAL LOGIC =====
+  let currentSharePostId = null;
+  let currentSharePostData = null;
+
+
+  window.openShareModal = window.openShareModal || function(btn) {
+    const card = btn.closest('.post-card');
+    if (!card) return;
+    currentSharePostId = card.dataset.postId;
+    
+    // Gather post data for preview
+    const authorEl = card.querySelector('.post-author');
+    const contentEl = card.querySelector('.post-body > p');
+    const imgEl = card.querySelector('.post-image');
+    
+    currentSharePostData = {
+      author: authorEl ? authorEl.textContent.trim() : 'Unknown',
+      content: contentEl ? contentEl.textContent.trim() : '',
+      image: imgEl ? imgEl.src : null
+    };
+    
+    // Update preview
+    const previewAuthor = document.getElementById('sharePreviewAuthor');
+    const previewText = document.getElementById('sharePostPreview');
+    const previewContainer = document.getElementById('sharePreviewContainer');
+    
+    if (previewAuthor) previewAuthor.textContent = currentSharePostData.author + ' · Community Name';
+    if (previewText) previewText.textContent = currentSharePostData.content || '*Shared post layout';
+    
+    // Add image to preview if exists
+    let existingPreviewImg = previewContainer.querySelector('.sp-preview-image');
+    if (existingPreviewImg) existingPreviewImg.remove();
+    
+    if (currentSharePostData.image) {
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'sp-preview-image';
+      imgWrap.style.cssText = 'margin-top:8px;border-radius:8px;overflow:hidden;';
+      imgWrap.innerHTML = '<img src="' + currentSharePostData.image + '" style="width:100%;max-height:200px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'"/>';
+      previewContainer.appendChild(imgWrap);
+    }
+    
+    const el = document.getElementById('shareModal');
+    if (el) el.classList.add('show');
+  };
+
+  window.submitShare = window.submitShare || function() {
+    if (!currentSharePostId) return;
+    
+    const ta = document.getElementById('shareText');
+    const text = ta ? ta.value.trim() : '';
+    
+    const btn = document.querySelector('#shareModal .btn-primary');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sharing...';
+    }
+    
+    const form = new FormData();
+    form.append('action', 'share_post');
+    form.append('shared_post_id', currentSharePostId);
+    form.append('content', text);
+    
+    fetch('../api/users/posts/create-post.php', {
+      method: 'POST',
+      credentials: 'include',
+      body: form
+    })
+    .then(async function(r) {
+      const raw = await r.text();
+      let data;
+      try { data = JSON.parse(raw); } catch(e) { data = null; }
+      if (!r.ok || !data || !data.success) {
+        throw new Error((data && data.error) ? data.error : raw || r.statusText);
+      }
+      return data;
+    })
+    .then(function(data) {
+      if (typeof showToast === 'function') showToast('Post shared! 🎉');
+      if (typeof closeModal === 'function') closeModal('shareModal');
+      if (ta) ta.value = '';
+      if (typeof loadFeedPosts === 'function') {
+        loadFeedPosts(1, true);
+      } else {
+        window.location.reload();
+      }
+    })
+    .catch(function(err) {
+      console.error('submitShare error:', err);
+      if (typeof showToast === 'function') showToast('Error: ' + err.message, 'error');
+    })
+    .finally(function() {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Share Post';
+      }
+      currentSharePostId = null;
+      currentSharePostData = null;
+    });
+  };
+
   window.openPostModal = window.openPostModal || function(prefill) {
     const ta = document.getElementById('modalPostText');
     if (ta) ta.value = prefill || '';
@@ -516,7 +816,6 @@ $FEED_POSTS = $posts;
   window.togglePostOptions = window.togglePostOptions || function() {};
   window.toggleLike = window.toggleLike || function() {};
   window.toggleComments = window.toggleComments || function() {};
-  window.openShareModal = window.openShareModal || function() {};
   
   window.editPost = window.editPost || function() {
     if (typeof showToast === 'function') showToast('Edit unavailable (missing feed.js)', 'warning');
@@ -540,8 +839,6 @@ $FEED_POSTS = $posts;
     if (typeof showToast === 'function') showToast('Report unavailable (missing handler)', 'warning');
     if (typeof closeModal === 'function') closeModal('reportModal');
   };
-
-  window.submitShare = window.submitShare || function() {};
 
   window.submitAnnounceRequest = window.submitAnnounceRequest || function() {
     if (typeof showToast === 'function') showToast('Request unavailable (missing handler)', 'warning');

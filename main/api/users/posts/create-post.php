@@ -1,158 +1,106 @@
 <?php
-// Ensure we never output HTML/PHP warnings into the JSON response.
-ob_start();
+// DEBUG VERSION
+ini_set('display_errors', 1);
 error_reporting(E_ALL);
-ini_set('display_errors', '0');
-ini_set('log_errors', '1');
 
 session_start();
-
-error_log('SESSION on create-post: ' . print_r($_SESSION, true));
-
-require_once __DIR__ . '/../../../../config/db.php';
-require_once __DIR__ . '/../../../../config/ban-check.php';
-
-header('Content-Type: application/json; charset=utf-8');
-
-$fail = function(string $message, int $code = 500, array $extra = []) {
-    if (!headers_sent()) {
-        http_response_code($code);
-    }
-    $payload = array_merge(['success' => false, 'error' => $message], $extra);
-    if (ob_get_length()) ob_clean();
-    echo json_encode($payload);
-    exit();
-};
+header('Content-Type: application/json');
 
 try {
-    // ---- Auth ----
-    $user_id = $_SESSION['user_id'] ?? '';
-    if (!is_string($user_id)) {
-        $user_id = '';
-    }
-    $user_id = trim($user_id);
+    // Try multiple config paths
+    $paths = [
+        __DIR__ . '/../../../config/db.php',
+        __DIR__ . '/../../../../config/db.php',
+    ];
 
-    if ($user_id === '') {
-        $fail('Unauthorized', 401, [
-            'debug' => [
-                'session_id' => session_id(),
-                'session_user_id_type' => gettype($_SESSION['user_id'] ?? null),
-                'session_user_id' => $_SESSION['user_id'] ?? 'NOT SET',
-            ]
-        ]);
-    }
+    require_once __DIR__ . '/../../users/ai/ai-moderator.php';
 
-    if (function_exists('isUserBanned') && isUserBanned($user_id, $conn)) {
-        $fail('Account banned', 403);
+    $configFound = false;
+    foreach ($paths as $path) {
+        if (file_exists($path)) {
+            require_once $path;
+            $configFound = true;
+            break;
+        }
     }
 
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        $fail('Method not allowed: ' . ($_SERVER['REQUEST_METHOD'] ?? 'NONE'), 405);
+    if (!$configFound) {
+        echo json_encode(['success' => false, 'error' => 'Config not found', 'tried' => $paths]);
+        exit;
     }
 
-    // ---- Input ----
+    // Try to load AI moderator
+    $aiPath = __DIR__ . '/../../users/ai/ai-moderator.php';
+    if (!file_exists($aiPath)) {
+        $aiPath = __DIR__ . '/../../../users/ai/ai-moderator.php';
+    }
+
+    if (file_exists($aiPath)) {
+        require_once $aiPath;
+        $aiLoaded = true;
+    } else {
+        $aiLoaded = false;
+    }
+
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['success' => false, 'error' => 'Not logged in']);
+        exit;
+    }
+
+    $user_id = $_SESSION['user_id'];
     $content = trim($_POST['content'] ?? '');
 
-    $image = null;
-    $image_name = null;
-
-    if (isset($_FILES['image']) && is_array($_FILES['image']) && !empty($_FILES['image']['name'])) {
-        $file = $_FILES['image'];
-
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $max_size = 5 * 1024 * 1024; // 5MB
-
-        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            $fail('Image upload failed', 400);
-        }
-
-        $mime = $file['type'] ?? '';
-        if ($mime && !in_array($mime, $allowed_types, true)) {
-            $fail('Invalid image type', 400);
-        }
-
-        $size = intval($file['size'] ?? 0);
-        if ($size <= 0 || $size > $max_size) {
-            $fail('Image too large', 400);
-        }
-
-        $uploadDir = __DIR__ . '/../../../../uploads/posts/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        $safeUserId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$user_id);
-        $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
-        if ($ext === '') {
-            $ext = 'jpg';
-        }
-
-        $image_name = ($safeUserId !== '' ? $safeUserId : 'anon') . '_' . time() . '.' . $ext;
-        $dest = $uploadDir . $image_name;
-
-        if (!move_uploaded_file((string)$file['tmp_name'], $dest)) {
-            $fail('Failed to save image', 400);
-        }
-
-        $image = $image_name;
+    if (empty($content) && empty($_FILES['image']['tmp_name'])) {
+        echo json_encode(['success' => false, 'error' => 'Content or image required']);
+        exit;
     }
 
-    if ($content === '' && $image === null) {
-        $fail('Content or image required', 400);
-    }
+// AI Moderation
+$moderator = new AIModerator($conn);
+$aiResult = $moderator->analyzeContent($content);
 
-    if ($content !== '' && mb_strlen($content) > 1000) {
-        $fail('Content max 1000 characters', 400);
-    }
+$status = 'pending';
+if ($aiResult['status'] === 'safe') $status = 'approved';
+elseif ($aiResult['status'] === 'rejected') $status = 'rejected';
 
-    // ---- Insert (PDO) ----
-    $file_url = $image ?: null;
-    $file_type = $image ? 'image' : 'none';
-    $visibility = 'public';
-    $status = 'approved';
+    // AI Moderation (if available)
+    $ai_score = 0;
     $ai_status = 'safe';
-    $ai_score = null;
     $ai_reason = null;
-    $is_archived = 0;
-    $is_deleted = 0;
-    $is_announcement = 0;
-    $community_id = null;
 
-    $sql = "INSERT INTO posts (
-        user_id, community_id, content, file_url, file_type, visibility, status,
-        is_archived, is_deleted, ai_score, ai_status, ai_reason, is_announcement
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        $fail('Failed to prepare statement', 500);
+    if ($aiLoaded && class_exists('AIModerator')) {
+        $moderator = new AIModerator($conn);
+        $aiResult = $moderator->analyzeContent($content);
+        $ai_score = $aiResult['score'];
+        $ai_status = $aiResult['status'];
+        $ai_reason = $aiResult['reason'];
     }
 
-    $stmt->execute([
-        $user_id,
-        $community_id,
-        $content,
-        $file_url,
-        $file_type,
-        $visibility,
-        $status,
-        $is_archived,
-        $is_deleted,
-        $ai_score,
-        $ai_status,
-        $ai_reason,
-        $is_announcement
+    $status = ($ai_status === 'safe') ? 'approved' : 'pending';
+
+    $stmt = $conn->prepare("
+    INSERT INTO posts (user_id, community_id, content, file_url, file_type, visibility, status, ai_score, ai_status, ai_reason)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+");
+$stmt->execute([
+    $user_id, $community_id, $content, $file_url, $file_type, 
+    $visibility, $status, $aiResult['score'], $aiResult['status'], $aiResult['reason']
+]);
+    $post_id = $conn->lastInsertId();
+
+    echo json_encode([
+        'success' => true,
+        'post_id' => $post_id,
+        'ai_status' => $ai_status,
+        'ai_score' => $ai_score,
+        'ai_loaded' => $aiLoaded
     ]);
 
-    echo json_encode(['success' => true, 'post_id' => (int)$conn->lastInsertId()]);
-    exit();
-
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
 }
-catch (Throwable $e) {
-    if (ob_get_length()) ob_clean();
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Server error', 'exception' => $e->getMessage()]);
-    exit();
-}
-
-$fail('Failed to create post', 500);

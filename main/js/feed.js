@@ -1,10 +1,6 @@
 // feed.js — FeedSpace Main Feed
 
-/*
-|--------------------------------------------------------------------------
-| UTILITY FUNCTIONS
-|--------------------------------------------------------------------------
-*/
+const DEFAULT_AVATAR = '/login-main-feedspace/assets/default.jpg';
 
 function escapeHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -14,9 +10,9 @@ function escapeAttr(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function showToast(message, type = 'info') {
-    // Implement your toast notification here
-    console.log(`[${type.toUpperCase()}] ${message}`);
+function showToast(message, type) {
+    type = type || 'info';
+    console.log('[' + type.toUpperCase() + '] ' + message);
 }
 
 /*
@@ -26,14 +22,14 @@ function showToast(message, type = 'info') {
 */
 
 function togglePostOptions(btn) {
-    const btnEl = btn?.classList?.contains('options-btn') ? btn : btn?.closest?.('.options-btn');
+    var btnEl = btn && btn.classList && btn.classList.contains('options-btn') ? btn : (btn && btn.closest ? btn.closest('.options-btn') : null);
     if (!btnEl) return;
 
-    const card = btnEl.closest('.post-card');
-    const menu = card ? card.querySelector('.post-options-menu') : null;
+    var card = btnEl.closest('.post-card');
+    var menu = card ? card.querySelector('.post-options-menu') : null;
     if (!menu) return;
 
-    document.querySelectorAll('.post-options-menu').forEach(m => {
+    document.querySelectorAll('.post-options-menu').forEach(function(m) {
         if (m !== menu) m.classList.remove('show');
     });
 
@@ -51,12 +47,12 @@ function closeOptions(el) {
 */
 
 function editPost(el) {
-    const card = el.closest('.post-card');
-    const body = card.querySelector('.post-body p');
-    const newText = prompt('Edit your post:', body ? body.innerText : '');
+    var card = el.closest('.post-card');
+    var body = card.querySelector('.post-body > p');
+    var newText = prompt('Edit your post:', body ? body.innerText : '');
 
     if (newText !== null && newText.trim()) {
-        const postId = card.dataset.postId;
+        var postId = card.dataset.postId;
 
         fetch('../api/users/posts/post-actions.php', {
             credentials: 'include',
@@ -68,8 +64,8 @@ function editPost(el) {
                 content: newText
             })
         })
-        .then(r => r.json())
-        .then(res => {
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
             if (res.success) {
                 if (body) body.innerText = newText;
                 showToast('Post updated!');
@@ -77,7 +73,7 @@ function editPost(el) {
                 showToast(res.error || 'Update failed', 'error');
             }
         })
-        .catch(() => showToast('Update failed', 'error'));
+        .catch(function() { showToast('Update failed', 'error'); });
     }
     closeOptions(el);
 }
@@ -89,7 +85,7 @@ function editPost(el) {
 */
 
 function deletePost(el) {
-    const card = el.closest('.post-card');
+    var card = el.closest('.post-card');
     if (!card) return;
 
     if (!confirm('Delete this post?')) {
@@ -97,7 +93,7 @@ function deletePost(el) {
         return;
     }
 
-    const postId = card.dataset.postId;
+    var postId = card.dataset.postId;
 
     card.style.transition = 'opacity 0.28s, transform 0.28s';
     card.style.opacity = '0';
@@ -112,10 +108,10 @@ function deletePost(el) {
             post_id: postId
         })
     })
-    .then(r => r.json())
-    .then(res => {
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
         if (res.success) {
-            setTimeout(() => card.remove(), 290);
+            setTimeout(function() { card.remove(); }, 290);
             showToast('Post deleted.');
         } else {
             showToast(res.error || 'Delete failed', 'error');
@@ -123,7 +119,7 @@ function deletePost(el) {
             card.style.transform = 'none';
         }
     })
-    .catch(() => {
+    .catch(function() {
         showToast('Delete failed', 'error');
         card.style.opacity = '1';
         card.style.transform = 'none';
@@ -139,11 +135,11 @@ function deletePost(el) {
 */
 
 function toggleLike(btn) {
-    const postId = btn?.dataset?.postId;
+    var postId = btn && btn.dataset && btn.dataset.postId;
     if (!postId) return;
 
-    const isLiked = btn.classList.contains('liked');
-    const span = btn.querySelector('span');
+    var isLiked = btn.classList.contains('liked');
+    var span = btn.querySelector('span');
 
     fetch('../api/users/interactions/toggle-post-like.php', {
         method: 'POST',
@@ -151,17 +147,17 @@ function toggleLike(btn) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ post_id: parseInt(postId, 10) })
     })
-    .then(r => r.json())
-    .then(res => {
-        if (!res || !res.success) throw new Error(res?.error || 'Toggle failed');
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (!res || !res.success) throw new Error(res && res.error ? res.error : 'Toggle failed');
 
-        const nextLiked = !!res.liked;
+        var nextLiked = !!res.liked;
         btn.classList.toggle('liked', nextLiked);
-        const icon = btn.querySelector('i');
+        var icon = btn.querySelector('i');
         if (icon) icon.className = nextLiked ? 'fas fa-heart' : 'far fa-heart';
-        if (span) span.textContent = String(res.likesCount ?? 0);
+        if (span) span.textContent = String(res.likesCount != null ? res.likesCount : 0);
     })
-    .catch(() => showToast(isLiked ? 'Failed to unlike' : 'Failed to like', 'error'));
+    .catch(function() { showToast(isLiked ? 'Failed to unlike' : 'Failed to like', 'error'); });
 }
 
 /*
@@ -172,40 +168,56 @@ function toggleLike(btn) {
 
 async function loadComments(postId, section) {
     try {
-        const res = await fetch('../api/users/interactions/get-comments.php', {
+        var res = await fetch('../api/users/interactions/get-comments.php', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ post_id: parseInt(postId, 10), page: 1 })
         });
 
-        const raw = await res.text();
-        let data;
-        try { data = JSON.parse(raw); }
-        catch { throw new Error('Invalid server response'); }
+        var text = await res.text();
+        var data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('Server returned non-JSON:', text.substring(0, 500));
+            throw new Error('Server error - check PHP logs');
+        }
 
-        if (!data?.success) throw new Error(data?.error || 'Failed to load comments');
+        if (!data || !data.success) throw new Error(data && data.error ? data.error : 'Failed to load comments');
 
-        const inputRow = section.querySelector('.comment-input-row');
+        var inputRow = section.querySelector('.comment-input-row');
         section.innerHTML = '';
         if (inputRow) section.appendChild(inputRow);
 
-        data.comments.forEach(comment => {
-            const item = document.createElement('div');
+        if (!data.comments || data.comments.length === 0) {
+            var emptyMsg = document.createElement('div');
+            emptyMsg.className = 'comment-empty';
+            emptyMsg.textContent = 'No comments yet. Be the first!';
+            section.appendChild(emptyMsg);
+            return;
+        }
+
+        data.comments.forEach(function(comment) {
+            var item = document.createElement('div');
             item.className = 'comment-item';
 
-            let modBadge = '';
+            var modBadge = '';
             if (comment.moderation_status === 'flagged') {
                 modBadge = '<span class="mod-badge flagged">⚠️ Under Review</span>';
             }
 
-            item.innerHTML = `
-                <img src="${escapeAttr(comment.avatar)}" alt="User"/>
-                <div class="comment-bubble">
-                    <div class="comment-author">${escapeHtml(comment.author)}</div>
-                    <div class="comment-text">${escapeHtml(comment.content)}</div>
-                    ${modBadge}
-                </div>`;
+            var toxicityBadge = '';
+            if (comment.toxicity_score && comment.toxicity_score > 0.5) {
+                toxicityBadge = '<span class="toxicity-badge" title="Toxicity: ' + Math.round(comment.toxicity_score * 100) + '%">⚠️</span>';
+            }
+
+            item.innerHTML = '<img src="' + escapeAttr(comment.avatar || DEFAULT_AVATAR) + '" alt="User"/>' +
+                '<div class="comment-bubble">' +
+                    '<div class="comment-author">' + escapeHtml(comment.author) + toxicityBadge + '</div>' +
+                    '<div class="comment-text">' + escapeHtml(comment.content) + '</div>' +
+                    modBadge +
+                '</div>';
             section.appendChild(item);
         });
 
@@ -216,33 +228,33 @@ async function loadComments(postId, section) {
 }
 
 function toggleComments(btn) {
-    const card = btn.closest('.post-card');
-    const section = card.querySelector('.comment-section');
+    var card = btn.closest('.post-card');
+    var section = card.querySelector('.comment-section');
     if (!section) return;
 
-    const isHidden = section.style.display === 'none' || !section.style.display;
+    var isHidden = section.style.display === 'none' || !section.style.display;
     section.style.display = isHidden ? 'block' : 'none';
 
     if (isHidden) {
-        const input = section.querySelector('input');
+        var input = section.querySelector('input');
         if (input) input.focus();
-        const postId = card.dataset.postId;
+        var postId = card.dataset.postId;
         if (postId) loadComments(postId, section);
     }
 }
 
 function addComment(btn) {
-    const wrap = btn.closest('.comment-input-wrap');
-    const input = wrap.querySelector('input');
-    const text = input.value.trim();
+    var wrap = btn.closest('.comment-input-wrap');
+    var input = wrap.querySelector('input');
+    var text = input.value.trim();
 
     if (!text) {
         showToast('Write something first!', 'warning');
         return;
     }
 
-    const card = btn.closest('.post-card');
-    const postId = card?.dataset?.postId;
+    var card = btn.closest('.post-card');
+    var postId = card && card.dataset ? card.dataset.postId : null;
 
     if (!postId) {
         showToast('Error: Post ID not found', 'error');
@@ -250,7 +262,7 @@ function addComment(btn) {
     }
 
     btn.disabled = true;
-    const originalIcon = btn.innerHTML;
+    var originalIcon = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
     fetch('../api/users/interactions/add-comments.php', {
@@ -262,27 +274,35 @@ function addComment(btn) {
             content: text
         })
     })
-    .then(r => r.json())
-    .then(res => {
-        if (!res?.success) throw new Error(res?.error || 'Failed to add comment');
+    .then(async function(r) {
+        var text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Server returned non-JSON:', text.substring(0, 500));
+            throw new Error('Server error - check PHP logs');
+        }
+    })
+    .then(function(res) {
+        if (!res || !res.success) throw new Error(res && res.error ? res.error : 'Failed to add comment');
 
         showToast('Comment added!');
         input.value = '';
 
-        const section = btn.closest('.comment-section');
+        var section = btn.closest('.comment-section');
         loadComments(postId, section);
 
-        const commentBtn = card.querySelector('.reaction-btn:has(i.fa-comment)');
+        var commentBtn = card.querySelector('.reaction-btn:has(i.fa-comment)');
         if (commentBtn) {
-            const span = commentBtn.querySelector('span');
+            var span = commentBtn.querySelector('span');
             if (span) span.textContent = String(res.comment_count || 0);
         }
     })
-    .catch(err => {
+    .catch(function(err) {
         console.error('Comment error:', err);
         showToast('Failed to add comment', 'error');
     })
-    .finally(() => {
+    .finally(function() {
         btn.disabled = false;
         btn.innerHTML = originalIcon;
     });
@@ -295,37 +315,37 @@ function addComment(btn) {
 */
 
 function openPostModal(prefill) {
-    const ta = document.getElementById('modalPostText');
+    var ta = document.getElementById('modalPostText');
     if (ta) ta.value = prefill || '';
     document.getElementById('postModal').classList.add('show');
     if (ta) ta.focus();
 }
 
 function closeModal(id) {
-    const el = document.getElementById(id);
+    var el = document.getElementById(id);
     if (el) el.classList.remove('show');
 }
 
 function submitPost(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    const ta = document.getElementById('modalPostText');
-    const text = ta ? ta.value.trim() : '';
-    const fileInput = document.getElementById('modalPostImage');
-    const hasFile = !!(fileInput && fileInput.files && fileInput.files[0]);
+    var ta = document.getElementById('modalPostText');
+    var text = ta ? ta.value.trim() : '';
+    var fileInput = document.getElementById('modalPostImage');
+    var hasFile = !!(fileInput && fileInput.files && fileInput.files[0]);
 
     if (!text && !hasFile) {
         showToast('Write something or attach a photo first!', 'warning');
         return;
     }
 
-    const btn = document.querySelector('#postModal .btn-primary');
+    var btn = document.querySelector('#postModal .btn-primary');
     if (btn) {
         btn.disabled = true;
         btn.textContent = 'Creating...';
     }
 
-    const form = new FormData();
+    var form = new FormData();
     form.append('content', text);
 
     if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -337,10 +357,10 @@ function submitPost(e) {
         credentials: 'include',
         body: form
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
         if (!data || !data.success) {
-            throw new Error(data?.error || 'Create failed');
+            throw new Error(data && data.error ? data.error : 'Create failed');
         }
 
         showToast('Post created!');
@@ -349,11 +369,11 @@ function submitPost(e) {
         if (fileInput) fileInput.value = '';
         window.location.reload();
     })
-    .catch(err => {
+    .catch(function(err) {
         console.error('Post creation error:', err);
         showToast('Error: ' + err.message, 'error');
     })
-    .finally(() => {
+    .finally(function() {
         if (btn) {
             btn.disabled = false;
             btn.textContent = '+ Create Post';
@@ -370,16 +390,20 @@ function submitPost(e) {
 function openReportModal(el) {
     closeOptions(el);
     document.getElementById('reportModal').classList.add('show');
+
+    var card = el.closest('.post-card');
+    window.__pendingReportPostId = card && card.dataset ? card.dataset.postId || null : null;
 }
 
 function submitReport() {
-    const reason = document.getElementById('reportReason')?.value?.trim();
+    var reason = document.getElementById('reportReason');
+    reason = reason ? reason.value.trim() : '';
     if (!reason) {
         showToast('Please provide a reason', 'warning');
         return;
     }
 
-    const postId = window.__pendingReportPostId;
+    var postId = window.__pendingReportPostId;
     if (!postId) {
         showToast('Error: No post selected', 'error');
         return;
@@ -395,8 +419,8 @@ function submitReport() {
             reason: reason
         })
     })
-    .then(r => r.json())
-    .then(res => {
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
         if (res.success) {
             showToast('Post reported. Thank you!');
             closeModal('reportModal');
@@ -404,7 +428,7 @@ function submitReport() {
             showToast(res.error || 'Report failed', 'error');
         }
     })
-    .catch(() => showToast('Report failed', 'error'));
+    .catch(function() { showToast('Report failed', 'error'); });
 }
 
 /*
@@ -413,20 +437,20 @@ function submitReport() {
 |--------------------------------------------------------------------------
 */
 
-let _sharePostText = '';
+var _sharePostText = '';
 
 function openShareModal(btn) {
-    const card = btn.closest('.post-card');
-    const postId = card?.dataset?.postId;
+    var card = btn.closest('.post-card');
+    var postId = card && card.dataset ? card.dataset.postId : null;
     window.__pendingSharePostId = postId || null;
 
-    const body = card.querySelector('.post-body p');
+    var body = card.querySelector('.post-body > p');
     _sharePostText = body ? body.innerText : '';
 
-    const preview = document.getElementById('sharePostPreview');
+    var preview = document.getElementById('sharePostPreview');
     if (preview) preview.textContent = _sharePostText.length > 80 ? _sharePostText.slice(0, 80) + '...' : _sharePostText;
 
-    const ta = document.getElementById('shareText');
+    var ta = document.getElementById('shareText');
     if (ta) ta.value = '';
 
     document.getElementById('shareModal').classList.add('show');
@@ -434,18 +458,15 @@ function openShareModal(btn) {
 
 function submitShare() {
     closeModal('shareModal');
-    const text = document.getElementById('shareText')?.value?.trim() || '';
-    if (!text) {
-        showToast('Write something to share first!', 'warning');
-        return;
-    }
+    var text = document.getElementById('shareText');
+    text = text ? text.value.trim() : '';
 
     if (!window.__pendingSharePostId) {
         showToast('Error: No post selected', 'error');
         return;
     }
 
-    const postId = window.__pendingSharePostId;
+    var postId = window.__pendingSharePostId;
     showToast('Sharing...');
 
     fetch('../api/users/posts/share-post.php', {
@@ -457,13 +478,13 @@ function submitShare() {
             comment: text
         })
     })
-    .then(r => r.json())
-    .then(res => {
-        if (!res?.success) throw new Error(res?.error || 'Share failed');
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (!res || !res.success) throw new Error(res && res.error ? res.error : 'Share failed');
         showToast(res.message || 'Post shared!');
-        setTimeout(() => window.location.reload(), 500);
+        setTimeout(function() { window.location.reload(); }, 500);
     })
-    .catch(err => {
+    .catch(function(err) {
         console.error('Share error:', err);
         showToast('Failed to share', 'error');
     });
@@ -477,21 +498,22 @@ function submitShare() {
 
 function openAnnounceModal(el) {
     closeOptions(el);
-    const modal = document.getElementById('announceModal');
+    var modal = document.getElementById('announceModal');
     if (modal) modal.classList.add('show');
 
-    const card = el.closest('.post-card');
-    window.__pendingAnnouncePostId = card?.dataset?.postId || null;
+    var card = el.closest('.post-card');
+    window.__pendingAnnouncePostId = card && card.dataset ? card.dataset.postId || null : null;
 }
 
 function submitAnnounceRequest() {
-    const reason = document.getElementById('announceReason')?.value?.trim();
+    var reason = document.getElementById('announceReason');
+    reason = reason ? reason.value.trim() : '';
     if (!reason) {
         showToast('Please provide a reason', 'warning');
         return;
     }
 
-    const postId = window.__pendingAnnouncePostId;
+    var postId = window.__pendingAnnouncePostId;
     if (!postId) {
         showToast('Error: No post selected', 'error');
         return;
@@ -507,8 +529,8 @@ function submitAnnounceRequest() {
             reason: reason
         })
     })
-    .then(r => r.json())
-    .then(res => {
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
         if (res.success) {
             showToast('Announcement request submitted!');
             closeModal('announceModal');
@@ -516,7 +538,7 @@ function submitAnnounceRequest() {
             showToast(res.error || 'Request failed', 'error');
         }
     })
-    .catch(() => showToast('Request failed', 'error'));
+    .catch(function() { showToast('Request failed', 'error'); });
 }
 
 /*
@@ -526,112 +548,140 @@ function submitAnnounceRequest() {
 */
 
 function archivePost(el) {
-    const card = el.closest('.post-card');
+    var card = el.closest('.post-card');
     if (!card) return;
 
     card.style.transition = 'opacity 0.28s, transform 0.28s';
     card.style.opacity = '0';
     card.style.transform = 'translateY(-8px)';
 
-    setTimeout(() => card.remove(), 290);
+    setTimeout(function() { card.remove(); }, 290);
     showToast('Post archived.');
     closeOptions(el);
 }
 
 /*
 |--------------------------------------------------------------------------
-| CREATE POST CARD
+| CREATE POST CARD (with shared post support)
+| Uses string concatenation ONLY - no template literals for HTML
 |--------------------------------------------------------------------------
 */
 
 function createPostCard(post) {
-    const card = document.createElement('div');
+    var card = document.createElement('div');
     card.className = 'post-card';
 
-    const postId = post.post_id || post.id;
-    const avatar = post.profile_picture || '../../assets/default.jpg';
-    const author = post.full_name || 'Unknown';
-    const content = post.content || '';
-    const image = post.image || post.file_url;
-    const likeCount = post.like_count || 0;
-    const commentCount = post.comment_count || 0;
-    const userLiked = post.user_liked || false;
+    var postId = post.post_id || post.id;
+    var avatar = post.profile_picture || DEFAULT_AVATAR;
+    var author = post.full_name || 'Unknown';
+    var content = post.content || '';
+    var image = post.image || post.file_url;
+    var likeCount = post.like_count || 0;
+    var commentCount = post.comment_count || 0;
+    var userLiked = post.user_liked || false;
+    var isShared = post.is_shared || false;
 
-    // Shared post handling
-    let sharedHeader = '';
-    let sharedBody = '';
+    // Build badges using string concatenation - NO template literals
+    var sharedBadge = '';
+    if (isShared) {
+        sharedBadge = '<span class="shared-badge"><i class="fas fa-share"></i> Shared</span>';
+    }
 
-    if (post.is_shared && post.shared_by) {
-        sharedHeader = `
-            <div class="shared-header">
-                <i class="fas fa-share"></i>
-                <span>Shared by <strong>${escapeHtml(post.shared_by.name)}</strong></span>
-            </div>
-        `;
+    var aiBadge = '';
+    if (post.ai_status === 'review') {
+        aiBadge = '<span class="ai-badge review" title="' + escapeAttr(post.ai_reason || 'Under review') + '">🤖 Review</span>';
+    } else if (post.ai_status === 'rejected') {
+        aiBadge = '<span class="ai-badge rejected">🤖 Rejected</span>';
+    }
 
-        if (post.original_post) {
-            sharedBody = `
-                <div class="shared-original">
-                    <div class="shared-original-header">
-                        <img src="${escapeAttr(post.shared_by.avatar)}" alt="User" class="shared-avatar"/>
-                        <span class="shared-name">${escapeHtml(post.shared_by.name)}</span>
-                        <span class="shared-time">${escapeHtml(post.original_post.created_at)}</span>
-                    </div>
-                    <p class="shared-content">${escapeHtml(post.original_post.content)}</p>
-                    ${post.original_post.file_url ? `<img src="${escapeAttr(post.original_post.file_url)}" alt="Shared image" class="shared-image"/>` : ''}
-                </div>
-            `;
+    // Build shared post preview if applicable
+    var sharedHtml = '';
+    if (isShared && post.original_post) {
+        var orig = post.original_post;
+        var origAvatar = orig.profile_picture || DEFAULT_AVATAR;
+        var origImageHtml = '';
+        if (orig.file_url) {
+            origImageHtml = '<div class="shared-image"><img src="' + escapeAttr(orig.file_url) + '" alt="Shared image"/></div>';
         }
+        sharedHtml = '<div class="shared-post-wrapper">' +
+            '<div class="shared-post-header"><i class="fas fa-retweet"></i><span>Shared from <strong>' + escapeHtml(orig.author) + '</strong></span></div>' +
+            '<div class="shared-post-card">' +
+                '<div class="shared-post-author">' +
+                    '<img src="' + escapeAttr(origAvatar) + '" alt="User" class="shared-avatar"/>' +
+                    '<div class="shared-author-info">' +
+                        '<div class="shared-name">' + escapeHtml(orig.author) + '</div>' +
+                        '<div class="shared-time">' + escapeHtml(orig.created_at) + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="shared-post-body"><p>' + escapeHtml(orig.content) + '</p>' + origImageHtml + '</div>' +
+            '</div>' +
+        '</div>';
     }
 
     card.dataset.postId = postId;
 
-    card.innerHTML = `
-        ${sharedHeader}
-        <div class="post-header">
-            <img src="${escapeAttr(avatar)}" alt="User" class="post-avatar"/>
-            <div class="post-meta">
-                <div class="post-author">${escapeHtml(author)}</div>
-                <div class="post-community">Community · <span class="post-time">${escapeHtml(post.created_at || '')}</span></div>
-                ${post.is_announcement ? '<span class="announcement-badge">📢 Announcement</span>' : ''}
-            </div>
-            <button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
-            <div class="post-options-menu">
-                <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-                <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-                <div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>
-                <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-                <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
-            </div>
-        </div>
-        <div class="post-body">
-            <p>${escapeHtml(content)}</p>
-            ${image ? `<div class="image-grid grid-1"><img src="${escapeAttr(image)}" alt="Post image" class="post-image"/></div>` : ''}
-            ${sharedBody}
-        </div>
-        <div class="post-footer">
-            <button class="reaction-btn ${userLiked ? 'liked' : ''}" data-post-id="${postId}" onclick="toggleLike(this)">
-                <i class="${userLiked ? 'fas' : 'far'} fa-heart"></i>
-                <span>${likeCount}</span>
-            </button>
-            <button class="reaction-btn" onclick="toggleComments(this)">
-                <i class="fas fa-comment"></i> <span>${commentCount}</span> Comment
-            </button>
-            <button class="reaction-btn" onclick="openShareModal(this)">
-                <i class="fas fa-share"></i> <span>Share</span>
-            </button>
-        </div>
-        <div class="comment-section" style="display:none;">
-            <div class="comment-input-row">
-                <img src="../../assets/default.jpg" alt="User"/>
-                <div class="comment-input-wrap">
-                    <input type="text" placeholder="Write a comment..."/>
-                    <button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-plus"></i></button>
-                </div>
-            </div>
-        </div>
-    `;
+    // Build post image HTML
+    var postImageHtml = '';
+    if (!isShared && image) {
+        postImageHtml = '<div class="image-grid grid-1"><img src="' + escapeAttr(image) + '" alt="Post image" class="post-image"/></div>';
+    }
 
+    // Build announcement badge
+    var announcementBadge = '';
+    if (post.is_announcement) {
+        announcementBadge = '<span class="announcement-badge">📢 Announcement</span>';
+    }
+
+    // Build like icon class
+    var likeIconClass = userLiked ? 'fas fa-heart' : 'far fa-heart';
+    var likeBtnClass = userLiked ? 'reaction-btn liked' : 'reaction-btn';
+
+    // Build the ENTIRE card using string concatenation ONLY
+    // NO template literals (${...}) anywhere in the HTML
+    var html = '<div class="post-header">' +
+        '<img src="' + escapeAttr(avatar) + '" alt="User" class="post-avatar"/>' +
+        '<div class="post-meta">' +
+            '<div class="post-author">' + escapeHtml(author) + ' ' + sharedBadge + ' ' + aiBadge + '</div>' +
+            '<div class="post-community">Community · <span class="post-time">' + escapeHtml(post.created_at || '') + '</span></div>' +
+            announcementBadge +
+        '</div>' +
+        '<button class="options-btn" onclick="togglePostOptions(this)"><i class="fas fa-ellipsis-h"></i></button>' +
+        '<div class="post-options-menu">' +
+            '<div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>' +
+            '<div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>' +
+            '<div class="post-option" onclick="archivePost(this)"><i class="fas fa-archive"></i> Archive</div>' +
+            '<div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>' +
+            '<div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>' +
+        '</div>' +
+    '</div>' +
+    '<div class="post-body">' +
+        '<p>' + escapeHtml(content) + '</p>' +
+        postImageHtml +
+        sharedHtml +
+    '</div>' +
+    '<div class="post-footer">' +
+        '<button class="' + likeBtnClass + '" data-post-id="' + postId + '" onclick="toggleLike(this)">' +
+            '<i class="' + likeIconClass + '"></i>' +
+            '<span>' + likeCount + '</span>' +
+        '</button>' +
+        '<button class="reaction-btn" onclick="toggleComments(this)">' +
+            '<i class="fas fa-comment"></i> <span>' + commentCount + '</span> Comment' +
+        '</button>' +
+        '<button class="reaction-btn" onclick="openShareModal(this)">' +
+            '<i class="fas fa-share"></i> <span>Share</span>' +
+        '</button>' +
+    '</div>' +
+    '<div class="comment-section" style="display:none;">' +
+        '<div class="comment-input-row">' +
+            '<img src="' + DEFAULT_AVATAR + '" alt="User"/>' +
+            '<div class="comment-input-wrap">' +
+                '<input type="text" placeholder="Write a comment..."/>' +
+                '<button class="comment-send-btn" onclick="addComment(this)"><i class="fas fa-paper-plane"></i></button>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+
+    card.innerHTML = html;
     return card;
 }
 
@@ -641,25 +691,26 @@ function createPostCard(post) {
 |--------------------------------------------------------------------------
 */
 
-async function loadFeed(page = 1) {
+async function loadFeed(page) {
+    page = page || 1;
     try {
-        const res = await fetch('../api/users/posts/get-posts.php', {
+        var res = await fetch('../api/users/posts/get-posts.php', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ page })
+            body: JSON.stringify({ page: page })
         });
 
-        let data;
+        var data;
         try { data = await res.json(); }
-        catch { throw new Error('Invalid feed response'); }
+        catch (e) { throw new Error('Invalid feed response'); }
 
-        if (!data?.success) throw new Error(data?.error || 'Failed to load feed');
+        if (!data || !data.success) throw new Error(data && data.error ? data.error : 'Failed to load feed');
 
-        const container = document.getElementById('feedPosts');
+        var container = document.getElementById('feedPosts');
         if (!container) return;
 
-        data.posts.forEach(post => {
+        data.posts.forEach(function(post) {
             container.appendChild(createPostCard(post));
         });
 
@@ -675,13 +726,12 @@ async function loadFeed(page = 1) {
 |--------------------------------------------------------------------------
 */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     loadFeed();
 
-    // Close modals on outside click
     document.addEventListener('click', function(e) {
-        ['postModal', 'reportModal', 'shareModal', 'announceModal'].forEach(id => {
-            const el = document.getElementById(id);
+        ['postModal', 'reportModal', 'shareModal', 'announceModal'].forEach(function(id) {
+            var el = document.getElementById(id);
             if (el && e.target === el) el.classList.remove('show');
         });
     });
