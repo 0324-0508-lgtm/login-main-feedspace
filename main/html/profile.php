@@ -49,7 +49,9 @@ $likesStmt = $pdo->prepare("
 $likesStmt->execute([$profileUserId]);
 $totalLikes = $likesStmt->fetchColumn();
 
-$viewsStmt = $pdo->prepare("SELECT views_count FROM profile_views WHERE user_id = ?");
+$viewsStmt = $pdo->prepare("SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = ?");
+$viewsStmt->execute([$profileUserId]);
+$profileViews = (int) $viewsStmt->fetchColumn();
 $viewsStmt->execute([$profileUserId]);
 $viewsRow     = $viewsStmt->fetch(PDO::FETCH_ASSOC);
 $profileViews = $viewsRow ? $viewsRow['views_count'] : 0;
@@ -65,9 +67,9 @@ if (!$isOwnProfile) {
 // ── Increment profile view ────────────────────────────────────
 if (!$isOwnProfile) {
     $pdo->prepare("
-        INSERT INTO profile_views (user_id, views_count) VALUES (?, 1)
-        ON DUPLICATE KEY UPDATE views_count = views_count + 1
-    ")->execute([$profileUserId]);
+    INSERT INTO profile_views (viewer_id, viewed_user_id) VALUES (?, ?)
+    ON DUPLICATE KEY UPDATE viewed_at = CURRENT_TIMESTAMP
+")->execute([$currentUserId, $profileUserId]);
     $profileViews++;
 }
 ?>
