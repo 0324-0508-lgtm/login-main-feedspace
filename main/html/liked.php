@@ -1,21 +1,63 @@
+<?php
+session_start();
+require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../../config/session.php';
+
+if (empty($_SESSION['user_id'])) {
+    header('Location: ../../index.html');
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+
+$stmt = $conn->prepare("SELECT first_name, last_name, profile_picture FROM users WHERE user_id = ?");
+$stmt->execute([$user_id]);
+$currentUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$currentFirst = $currentUser['first_name'] ?? 'User';
+$currentLast  = $currentUser['last_name'] ?? '';
+$currentName  = trim($currentFirst . ' ' . $currentLast) ?: 'User';
+
+$currentPic = $currentUser['profile_picture'] ?? '';
+if (empty($currentPic)) {
+    $currentPic = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' . urlencode($currentFirst);
+} elseif (strpos($currentPic, 'http') !== 0 && strpos($currentPic, 'data:') !== 0) {
+    // main/html -> main/uploads/profiles
+    $currentPic = '../../uploads/profiles/' . $currentPic;
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<?php
-session_start();
-header('Location: liked.php');
-exit;
-?>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Liked Pages – FeedSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/base.css"/>
+  <link rel="stylesheet" href="../css/liked.css"/>
+</head>
+<body>
 <header class="navbar">
-  <div class="nav-logo"><a href="feed-view.php"><img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/><span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span></a></div>
-  <div class="nav-search"><div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search liked communities..."/></div></div>
+  <div class="nav-logo">
+    <a href="feed-view.php">
+      <img src="logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+      <span class="nav-logo-fallback"><span class="icon">🎠</span><span class="text">FeedSpace</span></span>
+    </a>
+  </div>
+  <div class="nav-search">
+    <div class="search-bar">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search liked communities..."/>
+    </div>
+  </div>
   <div class="nav-actions">
     <button class="nav-icon-btn" onclick="toggleDropdown('notifDropdown')">
       <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
     </button>
     <div class="profile-chip" onclick="toggleDropdown('settingsDropdown')">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
+      <img src="<?php echo htmlspecialchars($currentPic); ?>" alt="Profile" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
       <span>You</span>
     </div>
 
@@ -26,24 +68,31 @@ exit;
 
     <div class="dropdown" id="settingsDropdown">
       <div class="dropdown-header">Settings</div>
-      <div class="dropdown-item" onclick="window.location.href='profile.php'"><i class="fas fa-user-edit"></i> Edit Profile</div>
-      <div class="dropdown-item danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Delete Profile</div>
+      <div class="dropdown-item" onclick="window.location.href='profile.php'">
+        <i class="fas fa-user-edit"></i> Edit Profile
+      </div>
+      <div class="dropdown-item danger" onclick="confirmDelete()">
+        <i class="fas fa-trash"></i> Delete Profile
+      </div>
       <div class="dropdown-divider"></div>
-      <div class="dropdown-item" onclick="window.location.href='../../index.html'"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+      <div class="dropdown-item" onclick="window.location.href='../../index.html'">
+        <i class="fas fa-sign-out-alt"></i> Log Out
+      </div>
     </div>
   </div>
 </header>
+
 <div class="app-body">
-    <aside class="sidebar">
+  <aside class="sidebar">
     <a href="profile.php" class="sidebar-profile-entry" title="Go to profile">
-      <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Kim" alt="Profile"/>
-      <span class="sidebar-profile-name">Kim Ballebar</span>
+      <img src="<?php echo htmlspecialchars($currentPic); ?>" alt="Profile" id="sidebarAvatar" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+      <span class="sidebar-profile-name"><?php echo htmlspecialchars($currentName); ?></span>
     </a>
 
     <div class="sidebar-divider"></div>
 
     <nav class="sidebar-nav">
-      <a href='feed-view.html'><i class="fas fa-home"></i><span>Feed</span></a>
+      <a href='feed-view.php'><i class="fas fa-home"></i><span>Feed</span></a>
       <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
       <a href="communities.php"><i class="fas fa-users"></i><span>Communities</span></a>
       <a href="liked.php" class="active"><i class="fas fa-heart"></i><span>Liked</span></a>
@@ -57,20 +106,19 @@ exit;
       </a>
     </div>
   </aside>
+
   <main class="main-content">
     <div class="liked-wrapper">
-
-      <!-- Search bar inside page + title -->
       <div class="liked-header-row">
         <h2 class="liked-title">Liked Communities</h2>
       </div>
+
       <div class="liked-search-bar">
         <i class="fas fa-search"></i>
         <input type="text" placeholder="Search liked communities..." oninput="filterLiked(this.value)"/>
       </div>
 
       <div class="liked-list" id="likedList">
-
         <div class="liked-row" data-name="Photography Club">
           <div class="liked-thumb" style="background:linear-gradient(135deg,#355872,#7AAACE)">📸</div>
           <div class="liked-row-info">
@@ -130,11 +178,11 @@ exit;
           </div>
           <button class="unlike-row-btn" onclick="unlikeRow(this, 'Nature Lovers')">Unlike</button>
         </div>
-
       </div>
     </div>
   </main>
 </div>
+
 <script src="../js/base.js"></script>
 <script src="../js/notifications.js"></script>
 <script src="../js/liked.js"></script>
@@ -145,10 +193,12 @@ function filterLiked(query) {
     row.style.display = name.includes(query.toLowerCase()) ? '' : 'none';
   });
 }
+
 function unlikeRow(btn, name) {
   const row = btn.closest('.liked-row');
   if (confirm('Unlike "' + name + '"?')) {
-    row.style.transition = 'opacity 0.28s'; row.style.opacity = '0';
+    row.style.transition = 'opacity 0.28s';
+    row.style.opacity = '0';
     setTimeout(() => row.remove(), 290);
     showToast('Unliked ' + name + '.');
   }

@@ -311,7 +311,7 @@ if (!$isOwnProfile) {
   <nav class="sidebar-nav">
     <a href="feed-view.php" class=""><i class="fas fa-home"></i><span>Feed</span></a>
     <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-    <a href="communities.html"><i class="fas fa-users"></i><span>Communities</span></a>
+    <a href="communities.php"><i class="fas fa-users"></i><span>Communities</span></a>
     <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
     <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
   </nav>
@@ -429,6 +429,7 @@ if (!$isOwnProfile) {
   </div><!-- /.profile-header -->
 
   <!-- ══ CREATE POST (only on own profile) ══ -->
+    <!-- ══ CREATE POST (only on own profile) ══ -->
   <?php if ($isOwnProfile): ?>
   <div class="profile-create-post">
     <div class="pcp-top">
@@ -443,7 +444,11 @@ if (!$isOwnProfile) {
         <i class="fas fa-image" style="color:#45bd62;"></i> Photo
       </button>
       <button class="pcp-action" onclick="openProfilePostModal()">
-        <i class="fas fa-pen" style="color:#1877f2;"></i> Post
+        <i class="fas fa-pen" style="color:#1877f2;"></i> Text
+      </button>
+      <div style="flex:1;"></div>
+      <button class="pcp-submit-btn" onclick="openProfilePostModal()" style="border-radius:8px;padding:8px 20px;font-size:0.9rem;">
+        <i class="fas fa-paper-plane"></i> Create Post
       </button>
     </div>
   </div>

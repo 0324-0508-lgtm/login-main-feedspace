@@ -2,6 +2,10 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
+$currentUserName = $currentName; // or however you fetch the current user
+$currentUserPic = $currentPic;
+$currentUserId = $user_id;
+
 $host = 'localhost';
 $dbname = 'db_feedspace';
 $user = 'root';

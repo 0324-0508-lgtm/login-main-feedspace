@@ -1,56 +1,56 @@
 <?php
-// Show MEMBERS of ONE community
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+session_start();
+header('Content-Type: application/json; charset=utf-8');
 
-$host='localhost'; $dbname='db_feedspace'; $user='root'; $pass='';
+require_once __DIR__ . '/../../../config/db.php';
 
-// mysqli connection
-$conn = mysqli_connect($host, $user, $pass, $dbname);
-if (!$conn) {
-    http_response_code(500);
-    exit(json_encode(['success' => false, 'message' => 'DB Error: ' . mysqli_connect_error()]));
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'error' => 'Not logged in']);
+    exit;
 }
 
-// Set charset
-mysqli_set_charset($conn, 'utf8mb4');
+$user_id = $_SESSION['user_id'];
+$community_id = intval($_POST['community_id'] ?? $_GET['community_id'] ?? 0);
+$action = $_POST['action'] ?? $_GET['action'] ?? 'join';
 
-$id = $_GET['id'] ?? 0;
-
-// Get members (prepared statement)
-$stmt = mysqli_prepare($conn, "
-    SELECT u.id, u.username, u.profile_picture, cm.joined_at
-    FROM community_members cm
-    JOIN users u ON cm.user_id = u.id
-    WHERE cm.community_id = ?
-    ORDER BY cm.joined_at DESC
-    LIMIT 50
-");
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$membersResult = mysqli_stmt_get_result($stmt);
-$members = [];
-while ($row = mysqli_fetch_assoc($membersResult)) {
-    $members[] = $row;
+if (!$community_id) {
+    echo json_encode(['success' => false, 'error' => 'Community ID required']);
+    exit;
 }
-mysqli_stmt_close($stmt);
 
-// Get total count (prepared statement - fixed SQL injection!)
-$countStmt = mysqli_prepare($conn, "SELECT COUNT(*) as total FROM community_members WHERE community_id = ?");
-mysqli_stmt_bind_param($countStmt, 'i', $id);
-mysqli_stmt_execute($countStmt);
-$countResult = mysqli_stmt_get_result($countStmt);
-$countRow = mysqli_fetch_assoc($countResult);
-$total = $countRow['total'];
-mysqli_stmt_close($countStmt);
+try {
+    if ($action === 'join') {
+        // Check if already member
+        $check = $conn->prepare("SELECT 1 FROM community_members WHERE community_id = ? AND user_id = ?");
+        $check->execute([$community_id, $user_id]);
+        if ($check->fetch()) {
+            echo json_encode(['success' => false, 'error' => 'Already a member']);
+            exit;
+        }
 
-// Close connection
-mysqli_close($conn);
+        $stmt = $conn->prepare("INSERT INTO community_members (community_id, user_id, role) VALUES (?, ?, 'member')");
+        $stmt->execute([$community_id, $user_id]);
+        
+        echo json_encode(['success' => true, 'message' => 'Joined community!']);
 
-echo json_encode([
-    'success' => true,
-    'communityId' => $id,
-    'members' => $members,
-    'total' => (int)$total
-]);
-?>
+    } else { // leave
+        // Prevent creator from leaving
+        $check = $conn->prepare("SELECT created_by FROM communities WHERE community_id = ?");
+        $check->execute([$community_id]);
+        $creator = $check->fetchColumn();
+        
+        if ($creator === $user_id) {
+            echo json_encode(['success' => false, 'error' => 'Creator cannot leave. Delete community instead.']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("DELETE FROM community_members WHERE community_id = ? AND user_id = ?");
+        $stmt->execute([$community_id, $user_id]);
+        
+        echo json_encode(['success' => true, 'message' => 'Left community']);
+    }
+
+} catch (PDOException $e) {
+    error_log('Join/leave error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Action failed: ' . $e->getMessage()]);
+}

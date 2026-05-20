@@ -1,5 +1,12 @@
 <?php
-session_start(); 
+session_start();  // ← Remove the duplicate session_start() below
+
+// login.php
+if (isset($_SESSION['user_id'])) {
+    header("Location: feed-view.php");  // ← Change to your main feed/dashboard page
+    exit();
+}
+
 header("Content-Type: application/json");
 
 require_once __DIR__ . '/../config/db.php';
