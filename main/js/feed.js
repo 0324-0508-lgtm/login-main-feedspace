@@ -409,6 +409,26 @@ async function loadFeed(page) {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadFeed();
+
+    // Nav search (client-side filter over rendered posts)
+    var navInput = document.getElementById('navSearchInput');
+    var navResults = document.getElementById('navSearchResults');
+    if (navInput && navResults) {
+        navResults.innerHTML = '';
+        var handler = function() {
+            var q = (navInput.value || '').trim().toLowerCase();
+            navResults.innerHTML = '';
+
+            var cards = document.querySelectorAll('#feedPosts .post-card');
+            cards.forEach(function(card) {
+                var text = card.innerText ? card.innerText.toLowerCase() : '';
+                var match = !q || text.indexOf(q) !== -1;
+                card.style.display = match ? '' : 'none';
+            });
+        };
+        navInput.addEventListener('input', handler);
+    }
+
     document.addEventListener('click', e => {
         ['postModal', 'reportModal', 'shareModal', 'announceModal'].forEach(id => {
             var el = document.getElementById(id);

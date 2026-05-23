@@ -81,7 +81,7 @@ function renderAnnouncementsMiniList() {
   list.innerHTML = announcementsData.slice(0, 3).map(function(item) {
     const badge = getBadge(item);
     return `
-      <div class="ann-mini-item" onclick="window.location.href='announcements.html'">
+      <div class="ann-mini-item" onclick="window.location.href='announcements.php'">
         <div class="ann-dot ${badge.className}"></div>
         <div>
           <div class="ann-mini-title">${item.title}</div>

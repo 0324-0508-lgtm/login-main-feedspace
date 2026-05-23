@@ -33,7 +33,7 @@ function getNotificationLink(notification) {
   if (!notification) return '#';
   if (notification.link) return notification.link;
   if (notification.message && notification.message.toLowerCase().includes('announcement')) {
-    return 'announcements.html';
+    return 'announcements.php';
   }
   return '#';
 }

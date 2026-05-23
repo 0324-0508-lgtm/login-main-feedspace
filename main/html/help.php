@@ -1,3 +1,25 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../index.php");
+    exit();
+}
+
+require_once __DIR__ . '/../../config/db.php';
+
+$currentUserId = $_SESSION['user_id'];
+
+// Fetch current user data
+$stmt = $conn->prepare("SELECT first_name, last_name, profile_picture FROM users WHERE user_id = :id");
+$stmt->bindValue(':id', $currentUserId, PDO::PARAM_STR);
+$stmt->execute();
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$displayName = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
+$displayName = trim($displayName) ?: 'User';
+$profilePic = $user['profile_picture'] ?? 'default.png';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +40,7 @@
   </style>
 </head>
 <body>
-<header class="navbar">
+<<header class="navbar">
   <div class="nav-logo"><a href="feed-view.php"><img src="../assets/logo.png" alt="FeedSpace" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/><span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span></a></div>
   <div class="nav-search"><div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search FeedSpace..."/></div></div>
   <div class="nav-actions">
@@ -42,16 +64,16 @@
 </header>
 <div class="app-body">
   <aside class="sidebar">
-    <a href="profile.php" class="sidebar-profile-entry" title="Go to profile">
+    <a href="profile.php?id=<?php echo urlencode($currentUserId); ?>" class="sidebar-profile-entry" title="Go to profile">
       <img src="<?php echo htmlspecialchars($profilePic); ?>" alt="Profile" id="sidebarAvatar" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
       <span class="sidebar-profile-name" id="sidebarProfileName"><?php echo htmlspecialchars($displayName); ?></span>
     </a>
     <div class="sidebar-divider"></div>
     <nav class="sidebar-nav">
       <a href="feed-view.php"><i class="fas fa-home"></i><span>Feed</span></a>
-      <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+      <a href="announcements.php"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
       <a href="community.php"><i class="fas fa-users"></i><span>Communities</span></a>
-      <a href="help.html" class="active"><i class="fas fa-question-circle"></i><span>Help</span></a>
+      <a href="help.php" class="active"><i class="fas fa-question-circle"></i><span>Help</span></a>
       <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
     </nav>
     <div class="sidebar-bottom">
@@ -59,12 +81,6 @@
     </div>
   </aside>
 
-    <div class="sidebar-bottom">
-      <a href="../../index.html" class="sidebar-signout">
-        <i class="fas fa-sign-out-alt"></i><span>Sign out</span>
-      </a>
-    </div>
-  </aside>
   <main class="main-content">
     <div class="help-wrapper">
       <div class="page-header"><h1><i class="fas fa-question-circle"></i> Need Help?</h1><p>Find answers to common questions and get support.</p></div>
@@ -114,4 +130,3 @@ function toggleFaq(q) {
 </script>
 </body>
 </html>
-
