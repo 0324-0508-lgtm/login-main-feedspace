@@ -26,7 +26,7 @@ function createCommunityCard(c) {
             <div class="comm-card-members"><i class="fas fa-users"></i> ${Number(memberCount).toLocaleString()} members</div>
         </div>
         <div class="comm-card-footer">
-            <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community-page.php?id=${commId}'">View</button>
+            <button class="comm-view-btn" onclick="event.stopPropagation();window.location.href='community.php?id=${commId}'">View</button>
             <button class="comm-like-btn ${isMember ? 'liked' : ''}" onclick="event.stopPropagation();toggleJoinCommunity(event, ${commId}, this)">
                 <i class="${isMember ? 'fas' : 'far'} fa-heart"></i>
             </button>
@@ -41,7 +41,7 @@ async function loadCommunities() {
     grid.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
 
     try {
-        const res = await fetch('../api/users/communities/get-communities.php', {
+        const res = await fetch('../../html/community.php', {
             method: 'GET',
             credentials: 'include'
         });

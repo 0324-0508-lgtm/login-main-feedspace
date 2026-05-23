@@ -58,11 +58,11 @@ $isApiRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
 
 if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts') {
     header('Content-Type: application/json');
-    
+
     $page = max(1, intval($_POST['page'] ?? 1));
     $limit = min(10, max(1, intval($_POST['limit'] ?? 10)));
     $offset = ($page - 1) * $limit;
-    
+
     $stmt = $conn->prepare("
         SELECT
             p.post_id,
@@ -99,19 +99,19 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
         ORDER BY p.created_at DESC
         LIMIT ? OFFSET ?
     ");
-    
+
     $stmt->bindValue(1, (int)$limit, PDO::PARAM_INT);
     $stmt->bindValue(2, (int)$offset, PDO::PARAM_INT);
     $stmt->execute();
-    
+
     $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     foreach ($posts as &$row) {
         $row['full_name'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
         $row['profile_picture'] = !empty($row['profile_picture'])
-            ? '../../uploads/profiles/' . $row['profile_picture']
-            : '../assets/default.jpg';
-        
+    ? '../../uploads/profiles/' . $row['profile_picture']
+    : 'https://api.dicebear.com/7.x/adventurer/svg?seed=' . urlencode($row['first_name'] ?? 'User');
+
         if (!empty($row['file_url'])) {
             $row['image'] = preg_match('#^https?://#i', $row['file_url'])
                 ? $row['file_url']
@@ -119,9 +119,9 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
         } else {
             $row['image'] = null;
         }
-        
+
         $row['created_at'] = date('M d, Y H:i', strtotime($row['created_at']));
-        
+
         // Process original post data for shared posts
         if (!empty($row['shared_post_id'])) {
             $row['is_shared'] = true;
@@ -144,7 +144,7 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
             $row['is_shared'] = false;
         }
     }
-    
+
     echo json_encode(['success' => true, 'posts' => $posts]);
     exit();
 }
@@ -205,8 +205,8 @@ foreach ($posts as &$row) {
     $row['full_name'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
     $row['profile_picture'] = !empty($row['profile_picture'])
         ? '../../uploads/profiles/' . $row['profile_picture']
-        : '../assets/default.jpg';
-    
+        : 'https://api.dicebear.com/7.x/adventurer/svg?seed=' . urlencode($row['first_name'] ?? 'User');
+
     if (!empty($row['file_url'])) {
         $row['image'] = preg_match('#^https?://#i', $row['file_url'])
             ? $row['file_url']
@@ -214,10 +214,10 @@ foreach ($posts as &$row) {
     } else {
         $row['image'] = null;
     }
-    
+
     $row['created_at'] = date('M d, Y H:i', strtotime($row['created_at']));
     $row['user_liked'] = !empty($row['user_liked']);
-    
+
     // Process original post data for shared posts
     if (!empty($row['shared_post_id'])) {
         $row['is_shared'] = true;
@@ -456,6 +456,118 @@ $FEED_POSTS = $posts;
       color: var(--color-accent);
     }
 
+    /* ===== MODAL FIXES ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(53, 88, 114, 0.6);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show {
+      display: flex;
+    }
+    .modal {
+      background: var(--color-white);
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .modal-body {
+      padding: 16px 20px;
+    }
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 12px 20px;
+      border-top: 1px solid var(--color-border);
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      color: var(--color-subtext);
+      cursor: pointer;
+    }
+    .btn-secondary {
+      background: var(--color-cream);
+      color: var(--color-subtext);
+      border: 2px solid var(--color-border);
+      padding: 8px 22px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background: var(--color-white);
+      border-color: var(--color-mid);
+      color: var(--color-dark);
+    }
+
+    /* EMERGENCY MODAL FIX - Add this to your <style> tag in feed-view.php */
+
+/* Force modal overlay */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(53, 88, 114, 0.6);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.show {
+  display: flex !important;
+}
+
+/* CRITICAL: Force the white modal box to show */
+.modal-overlay > .modal {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  width: 90% !important;
+  max-width: 480px !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+  position: relative !important;
+  z-index: 10000 !important;
+  margin: auto !important;
+}
+
+/* Ensure all modal content is visible */
+.modal-overlay > .modal * {
+  visibility: visible !important;
+}
+
+.modal-overlay > .modal .modal-header,
+.modal-overlay > .modal .modal-body,
+.modal-overlay > .modal .modal-footer {
+  display: block !important;
+  background: #ffffff !important;
+}
+
   </style>
 </head>
 
@@ -481,7 +593,6 @@ $FEED_POSTS = $posts;
       <i class="fas fa-bell"></i><span class="badge" id="notifCount">3</span>
     </button>
 
-
     <div class="dropdown" id="notifDropdown">
       <div class="dropdown-header">Notifications</div>
       <div id="notifList"></div>
@@ -500,16 +611,16 @@ $FEED_POSTS = $posts;
 <div class="app-body">
   <aside class="sidebar">
     <a href="profile.php?id=<?php echo urlencode($currentUserId); ?>" class="sidebar-profile-entry" title="Go to profile">
-  <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="Profile" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
-  <span class="sidebar-profile-name"><?php echo htmlspecialchars($currentUserName); ?></span>
-</a>
+      <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="Profile" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+      <span class="sidebar-profile-name"><?php echo htmlspecialchars($currentUserName); ?></span>
+    </a>
 
     <div class="sidebar-divider"></div>
 
     <nav class="sidebar-nav">
       <a href="feed-view.php" class="active"><i class="fas fa-home"></i><span>Feed</span></a>
       <a href="announcements.html"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-      <a href="community-details.php"><i class="fas fa-users"></i><span>Communities</span></a>
+      <a href="community.php"><i class="fas fa-users"></i><span>Communities</span></a>
       <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
       <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
     </nav>
@@ -526,10 +637,8 @@ $FEED_POSTS = $posts;
       <div class="feed-center">
         <div class="create-post-card">
           <div class="create-post-top">
-            <div class="create-post-top">
-  <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="User" id="createPostAvatar" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
-  <input type="text" id="newPostInput" class="create-post-input" placeholder="What's happening on campus, <?php echo htmlspecialchars($currentFirstName); ?>?" onclick="openPostModal('')"/>
-</div>
+            <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="User" id="createPostAvatar" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+            <input type="text" id="newPostInput" class="create-post-input" placeholder="What's happening on campus, <?php echo htmlspecialchars($currentFirstName); ?>?" onclick="openPostModal('')"/>
           </div>
           <div class="create-post-bottom">
             <button class="create-post-action" onclick="openPostModalWithImage()">
@@ -543,30 +652,36 @@ $FEED_POSTS = $posts;
         </div>
 
         <!-- AFTER: Dynamically loaded by feed-dynamic.js -->
-<div id="feedPosts"></div>
+        <div id="feedPosts"></div>
 
-      <div class="right-panel-card">
-        <div class="rp-header">
-          <span class="rp-title">Announcements</span>
-          <a href="announcements.html" class="rp-view-all">View all</a>
+      </div>
+
+      <div class="right-panel">
+        <div class="right-panel-card">
+          <div class="rp-header">
+            <span class="rp-title">Announcements</span>
+            <a href="announcements.html" class="rp-view-all">View all</a>
+          </div>
+          <div id="announcementsMiniList"></div>
         </div>
-        <div id="announcementsMiniList"></div>
       </div>
     </div>
   </main>
 </div>
 
-<!-- Modals -->
+<!-- ===== MODALS ===== -->
+
+<!-- Post Modal -->
 <div class="modal-overlay" id="postModal">
   <div class="modal">
     <div class="modal-header">
       <div style="display:flex;align-items:center;gap:10px;">
-  <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="User" style="width:32px;height:32px;border-radius:50%;" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
-  <div>
-    <div style="font-weight:800;font-size:0.9rem;color:var(--color-dark);"><?php echo htmlspecialchars($currentUserName); ?></div>
-    <div style="font-size:0.74rem;color:var(--color-subtext);">Community Name</div>
-  </div>
-</div>
+        <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="User" style="width:32px;height:32px;border-radius:50%;" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+        <div>
+          <div style="font-weight:800;font-size:0.9rem;color:var(--color-dark);"><?php echo htmlspecialchars($currentUserName); ?></div>
+          <div style="font-size:0.74rem;color:var(--color-subtext);">Community Name</div>
+        </div>
+      </div>
       <button class="modal-close" onclick="closeModal('postModal')"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body" style="position:relative;">
@@ -586,21 +701,70 @@ $FEED_POSTS = $posts;
   </div>
 </div>
 
+<!-- Report Modal -->
 <div class="modal-overlay" id="reportModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="report-modal-icon"><i class="fas fa-exclamation-circle"></i><span>REPORT POST</span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-exclamation-circle" style="font-size:1.2rem;color:#dc3545;"></i>
+        <span style="font-weight:800;font-size:1rem;color:var(--color-dark);">Report Post</span>
+      </div>
       <button class="modal-close" onclick="closeModal('reportModal')"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
-      <textarea class="report-textarea" placeholder="Why do you want to report this post?"></textarea>
+      <input type="hidden" id="report-post-id">
+
+      <label style="display:block;margin-bottom:6px;font-weight:700;font-size:0.9rem;color:var(--color-dark);">
+        Reason <span style="color:#dc3545;">*</span>
+      </label>
+      <select id="report-reason" style="width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:10px;font-size:0.9rem;font-family:inherit;margin-bottom:4px;background:var(--color-white);color:var(--color-text);">
+        <option value="">-- Select a reason --</option>
+        <option value="spam">Spam</option>
+        <option value="harassment">Harassment or bullying</option>
+        <option value="inappropriate">Inappropriate content</option>
+        <option value="fake_news">False information</option>
+        <option value="copyright">Copyright violation</option>
+        <option value="other">Other</option>
+      </select>
+      <span id="report-reason-error" style="color:#dc3545;font-size:0.8rem;display:block;min-height:18px;"></span>
+
+      <label style="display:block;margin:12px 0 6px;font-weight:700;font-size:0.9rem;color:var(--color-dark);">
+        Additional Details
+      </label>
+      <textarea id="report-description" rows="3" placeholder="Provide more details (required if 'Other' selected)" 
+        style="width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:10px;font-size:0.9rem;font-family:inherit;resize:vertical;background:var(--color-white);color:var(--color-text);"></textarea>
+      <span id="report-desc-error" style="color:#dc3545;font-size:0.8rem;display:block;min-height:18px;"></span>
     </div>
     <div class="modal-footer">
-      <button class="btn-primary" onclick="submitReport()">Submit Report</button>
+      <button class="btn-primary" onclick="submitReport()" style="background:#dc3545;">Submit Report</button>
+      <button class="btn-secondary" onclick="closeModal('reportModal')" style="margin-left:8px;">Cancel</button>
     </div>
   </div>
 </div>
 
+<!-- Announce Modal -->
+<div class="modal-overlay" id="announceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-bullhorn" style="font-size:1.2rem;color:var(--color-mid);"></i>
+        <span style="font-weight:800;font-size:1rem;color:var(--color-dark);">Request to Announce</span>
+      </div>
+      <button class="modal-close" onclick="closeModal('announceModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.87rem;color:var(--color-subtext);margin-bottom:12px;line-height:1.6;">
+        Want this post to appear in the Announcements section? Tell us why it's important for the community.
+      </p>
+      <textarea class="report-textarea" id="announceReason" placeholder="Why should this be announced? (e.g. important event, urgent update...)" style="border-color:var(--color-border);"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitAnnounceRequest()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share Modal -->
 <div class="modal-overlay" id="shareModal">
   <div class="modal">
     <div class="modal-header">
@@ -626,28 +790,9 @@ $FEED_POSTS = $posts;
   </div>
 </div>
 
-<div class="modal-overlay" id="announceModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <i class="fas fa-bullhorn" style="font-size:1.2rem;color:var(--color-mid);"></i>
-        <span style="font-weight:800;font-size:1rem;color:var(--color-dark);">Request to Announce</span>
-      </div>
-      <button class="modal-close" onclick="closeModal('announceModal')"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:0.87rem;color:var(--color-subtext);margin-bottom:12px;line-height:1.6;">
-        Want this post to appear in the Announcements section? Tell us why it's important for the community.
-      </p>
-      <textarea class="report-textarea" id="announceReason" placeholder="Why should this be announced? (e.g. important event, urgent update...)" style="border-color:var(--color-border);"></textarea>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="submitAnnounceRequest()"><i class="fas fa-paper-plane"></i> Submit Request</button>
-    </div>
-  </div>
-</div>
-
-
+<script>
+    window.__currentUserId = <?php echo json_encode($currentUserId); ?>;
+</script>
 <script src="../js/base.js"></script>
 <script src="../js/notifications.js"></script>
 <script src="../js/announcements.js"></script>
@@ -659,35 +804,31 @@ $FEED_POSTS = $posts;
   let currentSharePostId = null;
   let currentSharePostData = null;
 
-
   window.openShareModal = window.openShareModal || function(btn) {
     const card = btn.closest('.post-card');
     if (!card) return;
     currentSharePostId = card.dataset.postId;
-    
-    // Gather post data for preview
+
     const authorEl = card.querySelector('.post-author');
     const contentEl = card.querySelector('.post-body > p');
     const imgEl = card.querySelector('.post-image');
-    
+
     currentSharePostData = {
       author: authorEl ? authorEl.textContent.trim() : 'Unknown',
       content: contentEl ? contentEl.textContent.trim() : '',
       image: imgEl ? imgEl.src : null
     };
-    
-    // Update preview
+
     const previewAuthor = document.getElementById('sharePreviewAuthor');
     const previewText = document.getElementById('sharePostPreview');
     const previewContainer = document.getElementById('sharePreviewContainer');
-    
+
     if (previewAuthor) previewAuthor.textContent = currentSharePostData.author + ' · Community Name';
     if (previewText) previewText.textContent = currentSharePostData.content || '*Shared post layout';
-    
-    // Add image to preview if exists
+
     let existingPreviewImg = previewContainer.querySelector('.sp-preview-image');
     if (existingPreviewImg) existingPreviewImg.remove();
-    
+
     if (currentSharePostData.image) {
       const imgWrap = document.createElement('div');
       imgWrap.className = 'sp-preview-image';
@@ -695,65 +836,68 @@ $FEED_POSTS = $posts;
       imgWrap.innerHTML = '<img src="' + currentSharePostData.image + '" style="width:100%;max-height:200px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'"/>';
       previewContainer.appendChild(imgWrap);
     }
-    
+
     const el = document.getElementById('shareModal');
     if (el) el.classList.add('show');
   };
 
-  window.submitShare = window.submitShare || function() {
-    if (!currentSharePostId) return;
-    
-    const ta = document.getElementById('shareText');
-    const text = ta ? ta.value.trim() : '';
-    
-    const btn = document.querySelector('#shareModal .btn-primary');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Sharing...';
+ window.submitShare = window.submitShare || function() {
+  if (!currentSharePostId) {
+    showToast('No post selected to share', 'error');
+    return;
+  }
+
+  const ta = document.getElementById('shareText');
+  const text = ta ? ta.value.trim() : '';
+
+  const btn = document.querySelector('#shareModal .btn-primary');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
+  }
+
+  // Build as FormData (not JSON) to match what create-post.php expects
+  const form = new FormData();
+  form.append('content', text);
+  form.append('shared_post_id', currentSharePostId);
+
+  fetch('../api/users/posts/create-post.php', {
+    method: 'POST',
+    credentials: 'include',
+    body: form
+  })
+  .then(async function(r) {
+    const raw = await r.text();
+    let data;
+    try { data = JSON.parse(raw); } catch(e) { data = null; }
+    if (!r.ok || !data || !data.success) {
+      throw new Error((data && data.error) ? data.error : raw || r.statusText);
     }
-    
-    const form = new FormData();
-    form.append('action', 'share_post');
-    form.append('shared_post_id', currentSharePostId);
-    form.append('content', text);
-    
-    fetch('../api/users/posts/create-post.php', {
-      method: 'POST',
-      credentials: 'include',
-      body: form
-    })
-    .then(async function(r) {
-      const raw = await r.text();
-      let data;
-      try { data = JSON.parse(raw); } catch(e) { data = null; }
-      if (!r.ok || !data || !data.success) {
-        throw new Error((data && data.error) ? data.error : raw || r.statusText);
-      }
-      return data;
-    })
-    .then(function(data) {
-      if (typeof showToast === 'function') showToast('Post shared! 🎉');
-      if (typeof closeModal === 'function') closeModal('shareModal');
-      if (ta) ta.value = '';
-      if (typeof loadFeedPosts === 'function') {
-        loadFeedPosts(1, true);
-      } else {
-        window.location.reload();
-      }
-    })
-    .catch(function(err) {
-      console.error('submitShare error:', err);
-      if (typeof showToast === 'function') showToast('Error: ' + err.message, 'error');
-    })
-    .finally(function() {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Share Post';
-      }
-      currentSharePostId = null;
-      currentSharePostData = null;
-    });
-  };
+    return data;
+  })
+  .then(function(data) {
+    showToast('Post shared! 🎉');
+    closeModal('shareModal');
+    if (ta) ta.value = '';
+    if (typeof loadFeedPosts === 'function') {
+      loadFeedPosts(1, true);
+    } else {
+      window.location.reload();
+    }
+  })
+  .catch(function(err) {
+    console.error('submitShare error:', err);
+    showToast('Error: ' + err.message, 'error');
+  })
+  .finally(function() {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Share Post';
+    }
+    currentSharePostId = null;
+    currentSharePostData = null;
+  });
+};
 
   window.openPostModal = window.openPostModal || function(prefill) {
     const ta = document.getElementById('modalPostText');
@@ -864,18 +1008,117 @@ $FEED_POSTS = $posts;
   window.togglePostOptions = window.togglePostOptions || function() {};
   window.toggleLike = window.toggleLike || function() {};
   window.toggleComments = window.toggleComments || function() {};
-  
+
   window.editPost = window.editPost || function() {
     if (typeof showToast === 'function') showToast('Edit unavailable (missing feed.js)', 'warning');
   };
 
-  window.deletePost = window.deletePost || function() {
-    if (typeof showToast === 'function') showToast('Delete unavailable (missing feed.js)', 'warning');
+  window.deletePost = window.deletePost || async function(postId) {
+    if (!postId) {
+      console.error('[ERROR] No post ID provided for deletion');
+      return;
+    }
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+      const response = await fetch('../api/users/posts/delete-post.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ post_id: parseInt(postId) })
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log('[INFO] Post deleted successfully');
+        showToast('Post deleted', 'success');
+        const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+        if (postCard) {
+          postCard.style.transition = 'opacity 0.3s, transform 0.3s';
+          postCard.style.opacity = '0';
+          postCard.style.transform = 'scale(0.95)';
+          setTimeout(() => postCard.remove(), 300);
+        }
+      } else {
+        throw new Error(data.error || 'Delete failed');
+      }
+    } catch (error) {
+      console.error('[ERROR] Delete failed:', error.message);
+      showToast('Failed to delete post: ' + error.message, 'error');
+    }
   };
 
-  window.openReportModal = window.openReportModal || function() {
-    const el = document.getElementById('reportModal');
-    if (el) el.classList.add('show');
+  window.openReportModal = window.openReportModal || function(postId) {
+    if (postId && postId.closest) {
+      var card = postId.closest('.post-card');
+      postId = card ? card.dataset.postId : null;
+    }
+    if (!postId) {
+      console.error('[ERROR] No post ID for report');
+      return;
+    }
+    document.getElementById('report-post-id').value = postId;
+    document.getElementById('report-reason').value = '';
+    document.getElementById('report-description').value = '';
+    document.getElementById('report-reason-error').textContent = '';
+    document.getElementById('report-desc-error').textContent = '';
+    document.getElementById('reportModal').classList.add('show');
+  };
+
+  window.submitReport = window.submitReport || async function() {
+    const postId = document.getElementById('report-post-id').value;
+    const reason = document.getElementById('report-reason').value;
+    const description = document.getElementById('report-description').value.trim();
+
+    document.getElementById('report-reason-error').textContent = '';
+    document.getElementById('report-desc-error').textContent = '';
+
+    if (!reason) {
+      console.warn('[WARNING] Please provide a reason');
+      document.getElementById('report-reason-error').textContent = 'Please select a reason';
+      document.getElementById('report-reason').focus();
+      return;
+    }
+
+    if (reason === 'other' && !description) {
+      console.warn('[WARNING] Please provide a description for "Other"');
+      document.getElementById('report-desc-error').textContent = 'Please provide details for "Other"';
+      document.getElementById('report-description').focus();
+      return;
+    }
+
+    try {
+      const response = await fetch('../api/report-post.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: parseInt(postId),
+          reason: reason,
+          description: description
+        })
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('[ERROR] Expected JSON, got HTML:', text.substring(0, 200));
+        throw new Error('Server error. Please try again later.');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('[INFO] Report submitted!');
+        showToast('Report submitted successfully', 'success');
+        closeModal('reportModal');
+      } else {
+        throw new Error(data.error || 'Report failed');
+      }
+    } catch (error) {
+      console.error('[ERROR] Failed to submit report:', error.message);
+      showToast('Failed to submit report: ' + error.message, 'error');
+    }
   };
 
   window.openAnnounceModal = window.openAnnounceModal || function() {
@@ -883,20 +1126,13 @@ $FEED_POSTS = $posts;
     if (el) el.classList.add('show');
   };
 
-  window.submitReport = window.submitReport || function() {
-    if (typeof showToast === 'function') showToast('Report unavailable (missing handler)', 'warning');
-    if (typeof closeModal === 'function') closeModal('reportModal');
-  };
-
   window.submitAnnounceRequest = window.submitAnnounceRequest || function() {
-    if (typeof showToast === 'function') showToast('Request unavailable (missing handler)', 'warning');
-    if (typeof closeModal === 'function') closeModal('announceModal');
+    showToast('Announcement requests are not available yet.', 'warning');
+    closeModal('announceModal');
   };
 
   window.toggleDropdown = window.toggleDropdown || function() {};
   window.confirmDelete = window.confirmDelete || function() {};
-
-  
 </script>
 </body>
 </html>

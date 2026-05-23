@@ -8,7 +8,6 @@ ini_set('display_errors', 0);
 header('Content-Type: application/json');
 
 try {
-    // Find config
     $paths = [
         __DIR__ . '/../../../config/db.php',
         __DIR__ . '/../../../../config/db.php',
@@ -29,7 +28,6 @@ try {
         exit;
     }
 
-    // Check login
     if (!isset($_SESSION['user_id'])) {
         ob_end_clean();
         echo json_encode(['success' => false, 'error' => 'Not logged in']);
@@ -38,11 +36,13 @@ try {
 
     $user_id = $_SESSION['user_id'];
     $content = trim($_POST['content'] ?? '');
+    $shared_post_id = !empty($_POST['shared_post_id']) ? intval($_POST['shared_post_id']) : null;
+    $community_id = !empty($_POST['community_id']) ? intval($_POST['community_id']) : null;
     $file_url = null;
     $file_type = null;
 
-    // Validate
-    if (empty($content) && empty($_FILES['image'])) {
+    // FIXED: Allow empty content if sharing a post
+    if (empty($content) && empty($_FILES['image']) && !$shared_post_id) {
         ob_end_clean();
         echo json_encode(['success' => false, 'error' => 'Content or image required']);
         exit;
@@ -105,10 +105,10 @@ try {
         }
     }
 
-    // Insert post
+    // FIXED: Include shared_post_id and community_id in insert
     $stmt = $conn->prepare("
-        INSERT INTO posts (user_id, content, file_url, file_type, status, ai_score, ai_status, ai_reason, created_at, is_deleted, is_archived)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0, 0)
+        INSERT INTO posts (user_id, content, file_url, file_type, status, ai_score, ai_status, ai_reason, shared_post_id, community_id, created_at, is_deleted, is_archived)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0, 0)
     ");
     
     $stmt->execute([
@@ -119,7 +119,9 @@ try {
         $status,
         $ai_score,
         $ai_status,
-        $ai_reason
+        $ai_reason,
+        $shared_post_id,
+        $community_id
     ]);
     
     $post_id = $conn->lastInsertId();

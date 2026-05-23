@@ -15,7 +15,7 @@
 <header class="navbar">
   <div class="nav-logo">
     <a href="feed-view.php">
-      <img src="logo.png" alt="FeedSpace" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+      <img src="../assets/logo.png" alt="FeedSpace" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
       <span class="nav-logo-fallback"><span class="icon">🏠</span><span class="text">FeedSpace</span></span>
     </a>
   </div>
@@ -50,15 +50,15 @@
 <!-- ========== BODY ========== -->
 <div class="app-body">
   <aside class="sidebar">
-    <a href="profile.php" class="sidebar-profile-entry" title="Go to profile">
-      <img src="<?php echo htmlspecialchars($profilePic); ?>" alt="Profile" id="sidebarAvatar" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
-      <span class="sidebar-profile-name" id="sidebarProfileName"><?php echo htmlspecialchars($displayName); ?></span>
+    <a href="profile.php?id=<?php echo urlencode($currentUserId); ?>" class="sidebar-profile-entry" title="Go to profile">
+      <img src="<?php echo htmlspecialchars($currentUserPic); ?>" alt="Profile" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Default'"/>
+      <span class="sidebar-profile-name"><?php echo htmlspecialchars($currentUserName); ?></span>
     </a>
     <div class="sidebar-divider"></div>
     <nav class="sidebar-nav">
       <a href="feed-view.php"><i class="fas fa-home"></i><span>Feed</span></a>
       <a href="announcements.html" class="active"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-      <a href="community-detail.php" class=""><i class="fas fa-users"></i><span>Communities</span></a>
+      <a href="community.php" class=""><i class="fas fa-users"></i><span>Communities</span></a>
       <a href="help.html"><i class="fas fa-question-circle"></i><span>Help</span></a>
       <a href="about.html"><i class="fas fa-info-circle"></i><span>About</span></a>
     </nav>
