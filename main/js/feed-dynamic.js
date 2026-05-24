@@ -6,7 +6,6 @@ function dynamicRenderPosts(posts) {
   container.innerHTML = '';
 
   posts.forEach(p => {
-    // createPostCard already exists in feed.js; fallback if not present.
     if (typeof createPostCard === 'function') {
       container.appendChild(createPostCard(p));
     } else {
@@ -16,7 +15,6 @@ function dynamicRenderPosts(posts) {
     }
   });
 }
-// feed-dynamic.js - fully dynamic feed loader
 
 async function loadFeedPostsDynamic(page = 1) {
     console.log('loadFeedPostsDynamic called, page:', page);
@@ -27,11 +25,9 @@ async function loadFeedPostsDynamic(page = 1) {
         return;
     }
 
-    // Show loading state
     container.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading posts...</div>';
 
     try {
-        // Use the dedicated AJAX feed endpoint (prevents 401 from main-feed.php auth guard)
         const response = await fetch('../api/users/posts/get-posts.php', {
             method: 'POST',
             credentials: 'same-origin',
@@ -59,7 +55,6 @@ async function loadFeedPostsDynamic(page = 1) {
         container.innerHTML = '';
 
         data.posts.forEach(post => {
-            // Normalize post data
             const normalized = { ...post };
             normalized.id = normalized.post_id;
             normalized.user_liked = !!normalized.user_liked;
@@ -68,12 +63,10 @@ async function loadFeedPostsDynamic(page = 1) {
             normalized.full_name = normalized.full_name || 'Unknown User';
             normalized.profile_picture = normalized.profile_picture || '../assets/default.jpg';
 
-
             if (typeof createPostCard === 'function') {
                 const card = createPostCard(normalized);
                 container.appendChild(card);
             } else {
-                // Fallback rendering
                 const card = createFallbackPostCard(normalized);
                 container.appendChild(card);
             }
@@ -95,6 +88,9 @@ function createFallbackPostCard(post) {
     card.className = 'post-card';
     card.dataset.postId = post.id;
 
+    // Check if current user is the post owner
+    const isOwner = window.__currentUserId && String(window.__currentUserId) === String(post.user_id);
+
     card.innerHTML = `
         <div class="post-header">
             <img src="${escapeHtml(post.profile_picture)}" alt="User" class="post-avatar"/>
@@ -102,17 +98,34 @@ function createFallbackPostCard(post) {
                 <div class="post-author">${escapeHtml(post.full_name)}</div>
                 <div class="post-community">Community · <span class="post-time">${escapeHtml(post.created_at || '')}</span></div>
             </div>
-            <button class="options-btn" type="button" onclick="togglePostOptions(this)"><i class="fas fa-sliders-h"></i></button>
+            <button class="options-btn" type="button" onclick="togglePostOptions(this)"><i class="fas fa-ellipsis-h"></i></button>
             <div class="post-options-menu" role="menu">
-                <div class="post-option" onclick="editPost(this)"><i class="fas fa-pen"></i> Edit Post</div>
-                <div class="post-option danger" onclick="deletePost(this)"><i class="fas fa-trash"></i> Delete Post</div>
-                <div class="post-option" onclick="openReportModal(this)"><i class="fas fa-flag"></i> Report</div>
-                <div class="post-option" onclick="openAnnounceModal(this)"><i class="fas fa-bullhorn"></i> Request to Announce</div>
+                ${isOwner ? `
+                <div class="post-option" onclick="editPost('${post.id}')"><i class="fas fa-pen"></i> Edit Post</div>
+                <div class="post-option danger" onclick="deletePost('${post.id}')"><i class="fas fa-trash"></i> Delete Post</div>
+                ` : ''}
+                <div class="post-option" onclick="openReportModal('${post.id}')"><i class="fas fa-flag"></i> Report</div>
+                <div class="post-option" onclick="openAnnounceModal('${post.id}')"><i class="fas fa-bullhorn"></i> Request to Announce</div>
             </div>
         </div>
         <div class="post-body">
             <p>${escapeHtml(post.content || '')}</p>
             ${post.image ? `<div class="image-grid grid-1"><img src="${escapeHtml(post.image)}" alt="Post image" class="post-image"/></div>` : ''}
+            ${post.is_shared && post.original ? `
+            <div class="shared-post-card" onclick="window.location.href='feed-view.php?post=${post.original.post_id}'">
+                <div class="sp-header">
+                    <img src="${escapeHtml(post.original.profile_picture)}" alt="" class="sp-avatar"/>
+                    <div class="sp-meta">
+                        <div class="sp-author">${escapeHtml(post.original.full_name)}</div>
+                        <div class="sp-time">${escapeHtml(post.original.created_at)}</div>
+                    </div>
+                </div>
+                <div class="sp-body">
+                    <div class="sp-content">${escapeHtml(post.original.content || '')}</div>
+                    ${post.original.image ? `<div class="sp-image-wrap"><img src="${escapeHtml(post.original.image)}" class="sp-image"/></div>` : ''}
+                </div>
+            </div>
+            ` : ''}
         </div>
         <div class="post-footer">
             <button class="reaction-btn ${post.user_liked ? 'liked' : ''}" data-post-id="${post.id}" type="button" onclick="toggleLike(this)">
@@ -120,7 +133,7 @@ function createFallbackPostCard(post) {
                 <span>${post.like_count}</span>
             </button>
             <button class="reaction-btn" type="button" onclick="toggleComments(this)">
-                <i class="fas fa-comment"></i> <span>${post.comment_count}</span>Comment
+                <i class="fas fa-comment"></i> <span>${post.comment_count}</span> Comment
             </button>
             <button class="reaction-btn" type="button" onclick="openShareModal(this)">
                 <i class="fas fa-share"></i> <span>Share</span>

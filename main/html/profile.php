@@ -605,7 +605,19 @@ $profilePosts = $postsStmt->fetchAll(PDO::FETCH_ASSOC);
             <span class="post-author"><?php echo $displayName; ?></span>
             <span class="post-time"><?php echo date('M d, Y', strtotime($post['created_at'])); ?></span>
         </div>
+
+        <?php if ($isOwnProfile): ?>
+          <button class="options-btn" type="button" onclick="togglePostOptions(this)" aria-label="Post options">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+          <div class="post-options-menu" role="menu">
+            <div class="post-option" onclick="editPost(<?php echo (int)$post['post_id']; ?>)"><i class="fas fa-pen"></i> Edit Post</div>
+            <div class="post-option danger" onclick="deletePost(<?php echo (int)$post['post_id']; ?>)"><i class="fas fa-trash"></i> Delete Post</div>
+            <div class="post-option" onclick="openReportModal(<?php echo (int)$post['post_id']; ?>)"><i class="fas fa-flag"></i> Report</div>
+          </div>
+        <?php endif; ?>
     </div>
+
     <div class="post-body">
         <p><?php echo nl2br(htmlspecialchars($post['content'])); ?></p>
         <?php echo $sharedHtml; ?>
@@ -687,8 +699,10 @@ $profilePosts = $postsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 <script src="../js/base.js"></script>
 <script src="../js/notifications.js"></script>
+<script src="../js/feed.js"></script>
 
 <script>
+
 // ===== LIKE =====
 function toggleLike(postId, btn) {
     if (!btn) {

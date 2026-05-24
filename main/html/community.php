@@ -968,19 +968,23 @@ button { font-family: inherit; cursor: pointer; }
 /* ===== MEMBERS ===== */
 .members-section {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
+  width: 70%;
+  margin-left: 32px;
 }
 
 .member-item {
   background: var(--color-white);
   border: 2px solid var(--color-border);
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   gap: 14px;
   transition: all 0.2s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .member-item:hover {
@@ -989,20 +993,23 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .member-item img {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .member-item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .member-item-name {
   font-weight: 800;
   font-size: 0.95rem;
+  word-break: break-word;
 }
 
 .member-item-role {
@@ -1033,10 +1040,12 @@ button { font-family: inherit; cursor: pointer; }
 /* ===== PANELS ===== */
 .community-panel {
   display: none;
+  width: 100%;
 }
 
 .community-panel.active {
   display: block;
+  width: 100%;
 }
 
 /* ===== EMPTY STATE ===== */
@@ -1248,12 +1257,17 @@ button { font-family: inherit; cursor: pointer; }
       </button>
     </div>
   <?php elseif ($isMember): ?>
-              <button class="btn-join-community joined" onclick="toggleJoin(<?php echo $community_id; ?>, this)">
-                <i class="fas fa-check"></i> Joined
-              </button>
-            <?php else: ?>
-            <?php endif; ?>
-          </div>
+    <button class="btn-join-community joined" onclick="toggleJoin(<?php echo $community_id; ?>, this)"
+            onmouseenter="this.innerHTML='<i class=\'fas fa-sign-out-alt\'></i> Leave Community'"
+            onmouseleave="this.innerHTML='<i class=\'fas fa-check\'></i> Joined'">
+      <i class="fas fa-check"></i> Joined
+    </button>
+  <?php else: ?>
+    <button class="btn-join-community" onclick="toggleJoin(<?php echo $community_id; ?>, this)">
+      <i class="fas fa-plus"></i> Join Community
+    </button>
+  <?php endif; ?>
+</div>
         </div>
         <?php if (!empty($community['description'])): ?>
           <div class="community-bio"><?php echo nl2br(htmlspecialchars($community['description'])); ?></div>
@@ -1348,7 +1362,7 @@ button { font-family: inherit; cursor: pointer; }
       </div>
 
       <!-- ══ MEMBERS PANEL ══ -->
-      <div id="members-panel" class="community-panel">
+      <div id="members-panel" class="community-panel" style="width:100%;">
         <?php if (empty($members)): ?>
         <div class="empty-community">
           <i class="fas fa-users"></i>
@@ -1679,9 +1693,15 @@ document.addEventListener('DOMContentLoaded', function() {
       var data = await res.json();
       if (!data.success) throw new Error(data.error);
       btn.classList.toggle('joined');
-      btn.innerHTML = isJoined
-        ? '<i class=\"fas fa-plus\"></i> Join Community'
-        : '<i class=\"fas fa-check\"></i> Joined';
+      if (isJoined) {
+        btn.innerHTML = '<i class=\"fas fa-plus\"></i> Join Community';
+        btn.onmouseenter = null;
+        btn.onmouseleave = null;
+      } else {
+        btn.innerHTML = '<i class=\"fas fa-check\"></i> Joined';
+        btn.onmouseenter = function() { this.innerHTML = '<i class=\'fas fa-sign-out-alt\'></i> Leave Community'; };
+        btn.onmouseleave = function() { this.innerHTML = '<i class=\'fas fa-check\'></i> Joined'; };
+      }
       showToast(isJoined ? 'Left community' : 'Joined successfully!');
       setTimeout(function() { location.reload(); }, 800);
     } catch (err) {

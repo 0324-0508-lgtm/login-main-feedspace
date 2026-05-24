@@ -70,6 +70,7 @@ if ($isApiRequest && isset($_POST['action']) && $_POST['action'] === 'get_posts'
             p.file_url,
             p.created_at,
             p.shared_post_id,
+            p.user_id,
             u.first_name,
             u.last_name,
             u.profile_picture,
@@ -161,6 +162,7 @@ $stmt = $conn->prepare("
         p.file_url,
         p.created_at,
         p.shared_post_id,
+        p.user_id,
         u.first_name,
         u.last_name,
         u.profile_picture,
@@ -282,7 +284,7 @@ $FEED_POSTS = $posts;
     .trending-left i { color: var(--color-mid); font-size: 0.9rem; }
     .trending-count { font-size: 0.78rem; color: var(--color-subtext); font-weight: 600; }
 
-    /* ===== NESTED SHARED POST CARD (Facebook-style) ===== */
+    /* ===== NESTED SHARED POST CARD ===== */
     .shared-post-card {
         border: 1.5px solid var(--color-border, #e4e6eb);
         border-radius: 12px;
@@ -519,55 +521,187 @@ $FEED_POSTS = $posts;
       color: var(--color-dark);
     }
 
-    /* EMERGENCY MODAL FIX - Add this to your <style> tag in feed-view.php */
+    /* ===== POST OPTIONS MENU ===== */
+    .post-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+    }
+    .options-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 10px;
+      color: var(--color-subtext);
+      border-radius: 50%;
+      font-size: 1.1rem;
+      transition: background 0.15s;
+    }
+    .options-btn:hover {
+      background: var(--color-cream);
+    }
+    .post-options-menu {
+      display: none;
+      position: absolute;
+      right: 16px;
+      top: 48px;
+      background: var(--color-white);
+      border: 2px solid var(--color-border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      min-width: 180px;
+      z-index: 150;
+      overflow: hidden;
+    }
+    .post-options-menu.show {
+      display: block;
+    }
+    .post-option {
+      padding: 11px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--color-text);
+      transition: background 0.12s;
+    }
+    .post-option:hover {
+      background: var(--color-cream);
+    }
+    .post-option.danger {
+      color: #dc3545;
+    }
+    .post-option.danger:hover {
+      background: #fff5f5;
+    }
+    .post-option i {
+      width: 18px;
+      text-align: center;
+      color: var(--color-mid);
+    }
+    .post-option.danger i {
+      color: #dc3545;
+    }
 
-/* Force modal overlay */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(53, 88, 114, 0.6);
-  z-index: 9999;
-  align-items: center;
-  justify-content: center;
-}
+    /* ===== EDIT MODAL ===== */
+    #editModal .modal {
+      max-width: 520px;
+    }
+    #editModal textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid var(--color-border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 120px;
+      background: var(--color-white);
+      color: var(--color-text);
+    }
+    #editModal textarea:focus {
+      outline: none;
+      border-color: var(--color-mid);
+    }
+    .edit-image-preview {
+      margin-top: 12px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .edit-image-preview img {
+      width: 100%;
+      max-height: 250px;
+      object-fit: cover;
+      display: block;
+    }
+    .edit-image-preview .remove-img-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .edit-attach-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--color-border);
+    }
+    .edit-attach-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-cream);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-subtext);
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .edit-attach-btn:hover {
+      background: #e8e8ec;
+    }
 
-.modal-overlay.show {
-  display: flex !important;
-}
-
-/* CRITICAL: Force the white modal box to show */
-.modal-overlay > .modal {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  background: #ffffff !important;
-  border-radius: 16px !important;
-  width: 90% !important;
-  max-width: 480px !important;
-  max-height: 85vh !important;
-  overflow-y: auto !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
-  position: relative !important;
-  z-index: 10000 !important;
-  margin: auto !important;
-}
-
-/* Ensure all modal content is visible */
-.modal-overlay > .modal * {
-  visibility: visible !important;
-}
-
-.modal-overlay > .modal .modal-header,
-.modal-overlay > .modal .modal-body,
-.modal-overlay > .modal .modal-footer {
-  display: block !important;
-  background: #ffffff !important;
-}
-
+    /* EMERGENCY MODAL FIX */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(53, 88, 114, 0.6);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show {
+      display: flex !important;
+    }
+    .modal-overlay > .modal {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      background: #ffffff !important;
+      border-radius: 16px !important;
+      width: 90% !important;
+      max-width: 480px !important;
+      max-height: 85vh !important;
+      overflow-y: auto !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      position: relative !important;
+      z-index: 10000 !important;
+      margin: auto !important;
+    }
+    .modal-overlay > .modal * {
+      visibility: visible !important;
+    }
+    .modal-overlay > .modal .modal-header,
+    .modal-overlay > .modal .modal-body,
+    .modal-overlay > .modal .modal-footer {
+      display: block !important;
+      background: #ffffff !important;
+    }
   </style>
 </head>
 
@@ -651,7 +785,6 @@ $FEED_POSTS = $posts;
           </div>
         </div>
 
-        <!-- AFTER: Dynamically loaded by feed-dynamic.js -->
         <div id="feedPosts"></div>
 
       </div>
@@ -697,6 +830,36 @@ $FEED_POSTS = $posts;
       <div class="modal-footer">
         <button class="btn-primary" onclick="submitPost()">+ Create Post</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-pen" style="font-size:1.2rem;color:var(--color-mid);"></i>
+        <span style="font-weight:800;font-size:1rem;color:var(--color-dark);">Edit Post</span>
+      </div>
+      <button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editPostId">
+      <textarea id="editPostText" placeholder="What's on your mind?" rows="5"></textarea>
+      <div id="editImagePreview" style="display:none;margin-top:12px;border-radius:12px;overflow:hidden;position:relative;">
+        <img src="" style="width:100%;max-height:250px;object-fit:cover;display:block;" id="editPreviewImg"/>
+        <button onclick="clearEditImage()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+      </div>
+      <input type="file" id="editPostImage" accept="image/*" style="display:none;" onchange="previewEditImage(this)"/>
+      <div class="edit-attach-btns">
+        <button class="edit-attach-btn" type="button" onclick="document.getElementById('editPostImage').click()"><i class="fas fa-image"></i> Change Photo</button>
+        <button class="edit-attach-btn" type="button" onclick="removeEditImage()" id="editRemovePhotoBtn" style="display:none;"><i class="fas fa-trash"></i> Remove Photo</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn-primary" onclick="submitEdit()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -800,339 +963,334 @@ $FEED_POSTS = $posts;
 <script src="../js/feed-dynamic.js"></script>
 
 <script>
-  // ===== SHARE MODAL LOGIC =====
-  let currentSharePostId = null;
-  let currentSharePostData = null;
+    window.__currentUserId = <?php echo json_encode($currentUserId); ?>;
 
-  window.openShareModal = window.openShareModal || function(btn) {
-    const card = btn.closest('.post-card');
-    if (!card) return;
-    currentSharePostId = card.dataset.postId;
+    // ===== POST OPTIONS MENU =====
+    window.togglePostOptions = function(btn) {
+        const card = btn.closest('.post-card');
+        if (!card) return;
+        const menu = card.querySelector('.post-options-menu');
+        if (!menu) return;
 
-    const authorEl = card.querySelector('.post-author');
-    const contentEl = card.querySelector('.post-body > p');
-    const imgEl = card.querySelector('.post-image');
+        document.querySelectorAll('.post-options-menu.show').forEach(function(m) {
+            if (m !== menu) m.classList.remove('show');
+        });
 
-    currentSharePostData = {
-      author: authorEl ? authorEl.textContent.trim() : 'Unknown',
-      content: contentEl ? contentEl.textContent.trim() : '',
-      image: imgEl ? imgEl.src : null
+        menu.classList.toggle('show');
+
+        function closeOnClickOutside(e) {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.remove('show');
+                document.removeEventListener('click', closeOnClickOutside);
+            }
+        }
+
+        if (menu.classList.contains('show')) {
+            setTimeout(function() {
+                document.addEventListener('click', closeOnClickOutside);
+            }, 0);
+        }
     };
 
-    const previewAuthor = document.getElementById('sharePreviewAuthor');
-    const previewText = document.getElementById('sharePostPreview');
-    const previewContainer = document.getElementById('sharePreviewContainer');
+    // NOTE: editPost/submitEdit/deletePost are implemented in ../js/feed.js.
+    // This page used to redefine them inline, which can override/cause conflicts.
 
-    if (previewAuthor) previewAuthor.textContent = currentSharePostData.author + ' · Community Name';
-    if (previewText) previewText.textContent = currentSharePostData.content || '*Shared post layout';
 
-    let existingPreviewImg = previewContainer.querySelector('.sp-preview-image');
-    if (existingPreviewImg) existingPreviewImg.remove();
+    // ===== SHARE MODAL LOGIC =====
+    let currentSharePostId = null;
+    let currentSharePostData = null;
 
-    if (currentSharePostData.image) {
-      const imgWrap = document.createElement('div');
-      imgWrap.className = 'sp-preview-image';
-      imgWrap.style.cssText = 'margin-top:8px;border-radius:8px;overflow:hidden;';
-      imgWrap.innerHTML = '<img src="' + currentSharePostData.image + '" style="width:100%;max-height:200px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'"/>';
-      previewContainer.appendChild(imgWrap);
-    }
+    window.openShareModal = window.openShareModal || function(btn) {
+        const card = btn.closest('.post-card');
+        if (!card) return;
+        currentSharePostId = card.dataset.postId;
 
-    const el = document.getElementById('shareModal');
-    if (el) el.classList.add('show');
-  };
+        const authorEl = card.querySelector('.post-author');
+        const contentEl = card.querySelector('.post-body > p');
+        const imgEl = card.querySelector('.post-image');
 
- window.submitShare = window.submitShare || function() {
-  if (!currentSharePostId) {
-    showToast('No post selected to share', 'error');
-    return;
-  }
+        currentSharePostData = {
+            author: authorEl ? authorEl.textContent.trim() : 'Unknown',
+            content: contentEl ? contentEl.textContent.trim() : '',
+            image: imgEl ? imgEl.src : null
+        };
 
-  const ta = document.getElementById('shareText');
-  const text = ta ? ta.value.trim() : '';
+        const previewAuthor = document.getElementById('sharePreviewAuthor');
+        const previewText = document.getElementById('sharePostPreview');
+        const previewContainer = document.getElementById('sharePreviewContainer');
 
-  const btn = document.querySelector('#shareModal .btn-primary');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
-  }
+        if (previewAuthor) previewAuthor.textContent = currentSharePostData.author + ' · Community Name';
+        if (previewText) previewText.textContent = currentSharePostData.content || '*Shared post layout';
 
-  // Build as FormData (not JSON) to match what create-post.php expects
-  const form = new FormData();
-  form.append('content', text);
-  form.append('shared_post_id', currentSharePostId);
+        let existingPreviewImg = previewContainer ? previewContainer.querySelector('.sp-preview-image') : null;
+        if (existingPreviewImg) existingPreviewImg.remove();
 
-  fetch('../api/users/posts/create-post.php', {
-    method: 'POST',
-    credentials: 'include',
-    body: form
-  })
-  .then(async function(r) {
-    const raw = await r.text();
-    let data;
-    try { data = JSON.parse(raw); } catch(e) { data = null; }
-    if (!r.ok || !data || !data.success) {
-      throw new Error((data && data.error) ? data.error : raw || r.statusText);
-    }
-    return data;
-  })
-  .then(function(data) {
-    showToast('Post shared! 🎉');
-    closeModal('shareModal');
-    if (ta) ta.value = '';
-    if (typeof loadFeedPosts === 'function') {
-      loadFeedPosts(1, true);
-    } else {
-      window.location.reload();
-    }
-  })
-  .catch(function(err) {
-    console.error('submitShare error:', err);
-    showToast('Error: ' + err.message, 'error');
-  })
-  .finally(function() {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Share Post';
-    }
-    currentSharePostId = null;
-    currentSharePostData = null;
-  });
-};
-
-  window.openPostModal = window.openPostModal || function(prefill) {
-    const ta = document.getElementById('modalPostText');
-    if (ta) ta.value = prefill || '';
-    const modal = document.getElementById('postModal');
-    if (modal) modal.classList.add('show');
-    if (ta) ta.focus();
-  };
-
-  window.openPostModalWithImage = window.openPostModalWithImage || function() {
-    openPostModal();
-    setTimeout(function() {
-      var fileInput = document.getElementById('modalPostImage');
-      if (fileInput) fileInput.click();
-    }, 100);
-  };
-
-  window.previewModalImage = window.previewModalImage || function(input) {
-    if (input.files && input.files[0]) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var preview = document.getElementById('modalImagePreview');
-        var img = document.getElementById('modalPreviewImg');
-        if (preview && img) {
-          img.src = e.target.result;
-          preview.style.display = 'block';
+        if (currentSharePostData.image && previewContainer) {
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'sp-preview-image';
+            imgWrap.style.cssText = 'margin-top:8px;border-radius:8px;overflow:hidden;';
+            imgWrap.innerHTML = '<img src="' + currentSharePostData.image + '" style="width:100%;max-height:200px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'"/>';
+            previewContainer.appendChild(imgWrap);
         }
-      };
-      reader.readAsDataURL(input.files[0]);
-    }
-  };
 
-  window.clearModalImage = window.clearModalImage || function() {
-    var input = document.getElementById('modalPostImage');
-    var preview = document.getElementById('modalImagePreview');
-    if (input) input.value = '';
-    if (preview) preview.style.display = 'none';
-  };
+        const el = document.getElementById('shareModal');
+        if (el) el.classList.add('show');
+    };
 
-  window.closeModal = window.closeModal || function(id) {
-    const el = document.getElementById(id);
-    if (el) el.classList.remove('show');
-  };
-
-  window.submitPost = window.submitPost || function() {
-    const ta = document.getElementById('modalPostText');
-    const text = ta ? ta.value.trim() : '';
-    const fileInput = document.getElementById('modalPostImage');
-    const hasFile = !!(fileInput && fileInput.files && fileInput.files[0]);
-
-    if (!text && !hasFile) {
-      (typeof window.showToast === 'function' ? window.showToast : console.warn)('Write something or attach a photo/file first!');
-      return;
-    }
-
-    const btn = document.querySelector('#postModal .btn-primary');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-    }
-
-    const form = new FormData();
-    form.append('content', text);
-
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-      form.append('image', fileInput.files[0]);
-    }
-
-    fetch('../api/users/posts/create-post.php', {
-      method: 'POST',
-      credentials: 'include',
-      body: form
-    })
-      .then(async function(r) {
-        const raw = await r.text();
-        let data;
-        try { data = JSON.parse(raw); } catch(e) { data = null; }
-        if (!r.ok || !data || !data.success) {
-          const msg = (data && data.error) ? data.error : raw || r.statusText;
-          throw new Error(msg);
+    window.submitShare = window.submitShare || function() {
+        if (!currentSharePostId) {
+            showToast('No post selected to share', 'error');
+            return;
         }
-        return data;
-      })
-      .then(function(data) {
-        if (typeof showToast === 'function') showToast('Post shared! 🎉');
-        if (typeof closeModal === 'function') closeModal('postModal');
-        if (ta) ta.value = '';
-        if (fileInput) fileInput.value = '';
-        clearModalImage();
-        if (typeof loadFeedPosts === 'function') {
-          loadFeedPosts(1, true);
-        } else {
-          window.location.reload();
-        }
-      })
-      .catch(function(err) {
-        console.error('submitPost fallback error:', err);
-        if (typeof showToast === 'function') showToast('Error: ' + err.message, 'error');
-      })
-      .finally(function() {
+
+        const ta = document.getElementById('shareText');
+        const text = ta ? ta.value.trim() : '';
+
+        const btn = document.querySelector('#shareModal .btn-primary');
         if (btn) {
-          btn.disabled = false;
-          btn.textContent = '+ Create Post';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
         }
-      });
-  };
 
-  window.togglePostOptions = window.togglePostOptions || function() {};
-  window.toggleLike = window.toggleLike || function() {};
-  window.toggleComments = window.toggleComments || function() {};
+        const form = new FormData();
+        form.append('content', text);
+        form.append('shared_post_id', currentSharePostId);
 
-  window.editPost = window.editPost || function() {
-    if (typeof showToast === 'function') showToast('Edit unavailable (missing feed.js)', 'warning');
-  };
-
-  window.deletePost = window.deletePost || async function(postId) {
-    if (!postId) {
-      console.error('[ERROR] No post ID provided for deletion');
-      return;
-    }
-    if (!confirm('Are you sure you want to delete this post?')) return;
-
-    try {
-      const response = await fetch('../api/users/posts/delete-post.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ post_id: parseInt(postId) })
-      });
-      const data = await response.json();
-      if (data.success) {
-        console.log('[INFO] Post deleted successfully');
-        showToast('Post deleted', 'success');
-        const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
-        if (postCard) {
-          postCard.style.transition = 'opacity 0.3s, transform 0.3s';
-          postCard.style.opacity = '0';
-          postCard.style.transform = 'scale(0.95)';
-          setTimeout(() => postCard.remove(), 300);
-        }
-      } else {
-        throw new Error(data.error || 'Delete failed');
-      }
-    } catch (error) {
-      console.error('[ERROR] Delete failed:', error.message);
-      showToast('Failed to delete post: ' + error.message, 'error');
-    }
-  };
-
-  window.openReportModal = window.openReportModal || function(postId) {
-    if (postId && postId.closest) {
-      var card = postId.closest('.post-card');
-      postId = card ? card.dataset.postId : null;
-    }
-    if (!postId) {
-      console.error('[ERROR] No post ID for report');
-      return;
-    }
-    document.getElementById('report-post-id').value = postId;
-    document.getElementById('report-reason').value = '';
-    document.getElementById('report-description').value = '';
-    document.getElementById('report-reason-error').textContent = '';
-    document.getElementById('report-desc-error').textContent = '';
-    document.getElementById('reportModal').classList.add('show');
-  };
-
-  window.submitReport = window.submitReport || async function() {
-    const postId = document.getElementById('report-post-id').value;
-    const reason = document.getElementById('report-reason').value;
-    const description = document.getElementById('report-description').value.trim();
-
-    document.getElementById('report-reason-error').textContent = '';
-    document.getElementById('report-desc-error').textContent = '';
-
-    if (!reason) {
-      console.warn('[WARNING] Please provide a reason');
-      document.getElementById('report-reason-error').textContent = 'Please select a reason';
-      document.getElementById('report-reason').focus();
-      return;
-    }
-
-    if (reason === 'other' && !description) {
-      console.warn('[WARNING] Please provide a description for "Other"');
-      document.getElementById('report-desc-error').textContent = 'Please provide details for "Other"';
-      document.getElementById('report-description').focus();
-      return;
-    }
-
-    try {
-      const response = await fetch('../api/report-post.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          post_id: parseInt(postId),
-          reason: reason,
-          description: description
+        fetch('../api/users/posts/create-post.php', {
+            method: 'POST',
+            credentials: 'include',
+            body: form
         })
-      });
+        .then(async function(r) {
+            const raw = await r.text();
+            let data;
+            try { data = JSON.parse(raw); } catch(e) { data = null; }
+            if (!r.ok || !data || !data.success) {
+                throw new Error((data && data.error) ? data.error : raw || r.statusText);
+            }
+            return data;
+        })
+        .then(function(data) {
+            showToast('Post shared! 🎉');
+            closeModal('shareModal');
+            if (ta) ta.value = '';
+            if (typeof loadFeedPostsDynamic === 'function') {
+                loadFeedPostsDynamic(1);
+            } else if (typeof loadFeedPosts === 'function') {
+                loadFeedPosts(1, true);
+            } else {
+                window.location.reload();
+            }
+        })
+        .catch(function(err) {
+            console.error('submitShare error:', err);
+            showToast('Error: ' + err.message, 'error');
+        })
+        .finally(function() {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Share Post';
+            }
+            currentSharePostId = null;
+            currentSharePostData = null;
+        });
+    };
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('[ERROR] Expected JSON, got HTML:', text.substring(0, 200));
-        throw new Error('Server error. Please try again later.');
-      }
+    window.openPostModal = window.openPostModal || function(prefill) {
+        const ta = document.getElementById('modalPostText');
+        if (ta) ta.value = prefill || '';
+        const modal = document.getElementById('postModal');
+        if (modal) modal.classList.add('show');
+        if (ta) ta.focus();
+    };
 
-      const data = await response.json();
+    window.openPostModalWithImage = window.openPostModalWithImage || function() {
+        openPostModal();
+        setTimeout(function() {
+            var fileInput = document.getElementById('modalPostImage');
+            if (fileInput) fileInput.click();
+        }, 100);
+    };
 
-      if (data.success) {
-        console.log('[INFO] Report submitted!');
-        showToast('Report submitted successfully', 'success');
-        closeModal('reportModal');
-      } else {
-        throw new Error(data.error || 'Report failed');
-      }
-    } catch (error) {
-      console.error('[ERROR] Failed to submit report:', error.message);
-      showToast('Failed to submit report: ' + error.message, 'error');
-    }
-  };
+    window.previewModalImage = window.previewModalImage || function(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var preview = document.getElementById('modalImagePreview');
+                var img = document.getElementById('modalPreviewImg');
+                if (preview && img) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    };
 
-  window.openAnnounceModal = window.openAnnounceModal || function() {
-    const el = document.getElementById('announceModal');
-    if (el) el.classList.add('show');
-  };
+    window.clearModalImage = window.clearModalImage || function() {
+        var input = document.getElementById('modalPostImage');
+        var preview = document.getElementById('modalImagePreview');
+        if (input) input.value = '';
+        if (preview) preview.style.display = 'none';
+    };
 
-  window.submitAnnounceRequest = window.submitAnnounceRequest || function() {
-    showToast('Announcement requests are not available yet.', 'warning');
-    closeModal('announceModal');
-  };
+    window.closeModal = window.closeModal || function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('show');
+    };
 
-  window.toggleDropdown = window.toggleDropdown || function() {};
-  window.confirmDelete = window.confirmDelete || function() {};
+    window.submitPost = window.submitPost || function() {
+        const ta = document.getElementById('modalPostText');
+        const text = ta ? ta.value.trim() : '';
+        const fileInput = document.getElementById('modalPostImage');
+        const hasFile = !!(fileInput && fileInput.files && fileInput.files[0]);
+
+        if (!text && !hasFile) {
+            (typeof window.showToast === 'function' ? window.showToast : console.warn)('Write something or attach a photo/file first!');
+            return;
+        }
+
+        const btn = document.querySelector('#postModal .btn-primary');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+        }
+
+        const form = new FormData();
+        form.append('content', text);
+
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            form.append('image', fileInput.files[0]);
+        }
+
+        fetch('../api/users/posts/create-post.php', {
+            method: 'POST',
+            credentials: 'include',
+            body: form
+        })
+        .then(async function(r) {
+            const raw = await r.text();
+            let data;
+            try { data = JSON.parse(raw); } catch(e) { data = null; }
+            if (!r.ok || !data || !data.success) {
+                const msg = (data && data.error) ? data.error : raw || r.statusText;
+                throw new Error(msg);
+            }
+            return data;
+        })
+        .then(function(data) {
+            if (typeof showToast === 'function') showToast('Post shared! 🎉');
+            if (typeof closeModal === 'function') closeModal('postModal');
+            if (ta) ta.value = '';
+            if (fileInput) fileInput.value = '';
+            window.clearModalImage();
+            if (typeof loadFeedPostsDynamic === 'function') {
+                loadFeedPostsDynamic(1);
+            } else if (typeof loadFeedPosts === 'function') {
+                loadFeedPosts(1, true);
+            } else {
+                window.location.reload();
+            }
+        })
+        .catch(function(err) {
+            console.error('submitPost fallback error:', err);
+            if (typeof showToast === 'function') showToast('Error: ' + err.message, 'error');
+        })
+        .finally(function() {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '+ Create Post';
+            }
+        });
+    };
+
+    window.toggleLike = window.toggleLike || function() {};
+    window.toggleComments = window.toggleComments || function() {};
+
+    window.openReportModal = window.openReportModal || function(postId) {
+        if (postId && postId.closest) {
+            var card = postId.closest('.post-card');
+            postId = card ? card.dataset.postId : null;
+        }
+        if (!postId) {
+            console.error('[ERROR] No post ID for report');
+            return;
+        }
+        document.getElementById('report-post-id').value = postId;
+        document.getElementById('report-reason').value = '';
+        document.getElementById('report-description').value = '';
+        document.getElementById('report-reason-error').textContent = '';
+        document.getElementById('report-desc-error').textContent = '';
+        document.getElementById('reportModal').classList.add('show');
+    };
+
+    window.submitReport = window.submitReport || async function() {
+        const postId = document.getElementById('report-post-id').value;
+        const reason = document.getElementById('report-reason').value;
+        const description = document.getElementById('report-description').value.trim();
+
+        document.getElementById('report-reason-error').textContent = '';
+        document.getElementById('report-desc-error').textContent = '';
+
+        if (!reason) {
+            console.warn('[WARNING] Please provide a reason');
+            document.getElementById('report-reason-error').textContent = 'Please select a reason';
+            document.getElementById('report-reason').focus();
+            return;
+        }
+
+        if (reason === 'other' && !description) {
+            console.warn('[WARNING] Please provide a description for "Other"');
+            document.getElementById('report-desc-error').textContent = 'Please provide details for "Other"';
+            document.getElementById('report-description').focus();
+            return;
+        }
+
+        try {
+            const response = await fetch('../api/users/reports/report-post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    post_id: parseInt(postId),
+                    reason: reason,
+                    description: description
+                })
+            });
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('[ERROR] Expected JSON, got HTML:', text.substring(0, 200));
+                throw new Error('Server error. Please try again later.');
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('[INFO] Report submitted!');
+                showToast('Report submitted successfully', 'success');
+                closeModal('reportModal');
+            } else {
+                throw new Error(data.error || 'Report failed');
+            }
+        } catch (error) {
+            console.error('[ERROR] Failed to submit report:', error.message);
+            showToast('Failed to submit report: ' + error.message, 'error');
+        }
+    };
+
+    window.openAnnounceModal = window.openAnnounceModal || function() {
+        const el = document.getElementById('announceModal');
+        if (el) el.classList.add('show');
+    };
+
+    window.submitAnnounceRequest = window.submitAnnounceRequest || function() {
+        showToast('Announcement requests are not available yet.', 'warning');
+        closeModal('announceModal');
+    };
+
+    window.toggleDropdown = window.toggleDropdown || function() {};
+    window.confirmDelete = window.confirmDelete || function() {};
 </script>
 </body>
 </html>
